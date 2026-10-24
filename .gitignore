@@ -1,0 +1,19 @@
+# secrets
+.env
+
+# real statements must never be committed — only synthetic samples are allowed
+*.pdf
+*.csv
+*.xls
+*.xlsx
+!data/sample/*.pdf
+!data/sample/*.csv
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# streamlit
+.streamlit/secrets.toml
