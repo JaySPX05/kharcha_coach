@@ -21,7 +21,7 @@ From building Kharcha Coach on Oct 24–30, 2026. Every point below comes from o
 ## Nemotron models
 - **Nano** (categoriser): 91% accuracy on 100 hand-labelled Indian merchants with rules + Nano; on the 23 hardest names Nano alone got 14/23 (61%). JSON output was valid every time; the retry for bad JSON never fired. Its main weakness was choosing "Other" for recognisable but regional brands (CTR, Nayara, Indane), which clearer category guidance partly fixed (88% → 91%).
 - **Super** (tool-calling chat): chose a sensible tool in 10/10 test questions and chained calls when needed (e.g. 4× `compare_months`). It handled Hinglish well once we told it which language to answer in. Without explicit rules it sometimes invented "suggested" targets (Rs 1,500 / Rs 4,000) and once labelled a 3-month total as "September", so we added a number check and period labels on every tool result.
-- **Ultra** (coach report): returned a valid report and a specific, well-grounded summary (deficit, top 3 categories, merchant-level actions). Latency: ULTRA_LATENCY. It once computed a ratio itself ("2.8× higher on weekends"), which we now forbid in the prompt.
+- **Ultra** (coach report): returned a valid report and a specific, well-grounded summary (deficit, top 3 categories, merchant-level actions). One report took 14.7 s and 8,033 tokens ($0.018), fine behind a spinner for a once-a-month report. It once computed a ratio itself ("2.8× higher on weekends"), which we now forbid in the prompt. After that change it quoted the underlying amounts instead ("Rs 2,573 per day on weekends vs Rs 904 on weekdays"); our number check still flagged one self-chosen threshold ("visits over Rs 100").
 
 ## Hosting
-- DEPLOY_HOST: DEPLOY_NOTES
+- We host the Streamlit app on Streamlit Community Cloud for speed before the deadline; it calls Token Factory at runtime. A Dockerfile is included for a container deploy on Nebius.
