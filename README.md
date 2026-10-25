@@ -116,11 +116,11 @@ estimated cost per statement in the footer.
 | Categoriser accuracy, 100 hand-labelled merchants (rules + Nano) | 91% (rules 77/77, one Nano call, $0.00015) |
 | …of which decided by Nano | 14/23 hardest leftovers (61%) |
 | Avg latency per call: Nano / Super | 2.2 s (40-merchant batch) / 1.2 s (20 calls, 10 questions) |
-| Ultra coach report latency | ULTRA_LATENCY (from the app footer) |
-| Cost: categorising a 3-month statement / one chat answer / one coach report | < $0.001 (rules handle all but 2 merchants) / ~$0.002 (2 Super calls) / ULTRA_COST |
+| Ultra coach report latency | 14.7 s (one call, 8,033 tokens) |
+| Cost: categorising a 3-month statement / one chat answer / one coach report | < $0.001 (rules handle all but 2 merchants) / ~$0.002 (2 Super calls) / $0.018 (≈ Rs 1.5) |
 | Chat: right tool chosen on the 10 test questions (final run) | 10/10; invented figures flagged by the number check in 1/10 |
 
-Hosting: DEPLOY_HOST (see Deploy below).
+Hosting: Streamlit Community Cloud (see Deploy below); all model calls go to Token Factory at runtime.
 
 ## Deploy
 
