@@ -1,25 +1,27 @@
-# Product feedback — Token Factory, Nebius AI Cloud, Nemotron (DRAFT)
+# Product feedback — Nebius Token Factory and NVIDIA Nemotron
 
-Fill each TODO from real experience: the `[llm]` log lines, `scripts/*` output and decisions.md.
-Judges value specifics over praise. Delete this line before submitting.
+From building Kharcha Coach on Oct 24–30, 2026. Every point below comes from our own logs and test scripts.
 
 ## Nebius Token Factory
-**What worked**
-- OpenAI-compatible API: the stock `openai` SDK worked by changing `base_url` only. TODO: how long from key to first call.
-- TODO: measured latency per tier (from the app footer / `scripts/smoke_test.py`).
 
-**What was confusing**
-- TODO: anything about finding exact model IDs (did `/v1/models` match the catalog page?).
-- TODO: whether `tool_calls` came back natively for Nemotron Super (`scripts/check_tool_calling.py`).
-- TODO: whether reasoning text arrived in `content` or a separate field, and if `enable_thinking` via `chat_template_kwargs` was documented.
+**What worked**
+- **Drop-in OpenAI compatibility.** The stock `openai` Python SDK worked by changing `base_url` and the key. Native tool calling worked for Nemotron Super on the first try (`tool_calls` returned with correct arguments, 1.6 s).
+- **Model IDs from `/v1/models` matched the catalog**, and listing them made a quick check that `.env` was right (`scripts/list_models.py`).
+- **Fast and cheap for this workload.** Nano categorised a 40-merchant batch in 2.2 s for $0.00015; Super averaged 1.1–1.5 s per call; 10 chat questions (20 calls, ~65k tokens) cost about $0.02.
+
+**What was confusing or got in the way**
+- **529 "System is overloaded"** appeared several times in one evening on Super (3 of 20 calls in one run). It was not in the status codes we expected to retry, so the first run crashed. Documenting 529 as retryable (and a suggested backoff) next to 429 would help.
+- **Reasoning text in `content`.** With `enable_thinking: false`, Super still put a reasoning-style sentence in `content` on tool-call turns ("We need total spend for merchant Swiggy… Use spend_by tool."). Harmless on tool turns, but it would show up in a UI if a client displayed it.
+- **`enable_thinking` had no visible effect on Nano.** Turning it on produced identical token counts (831 in / 409 out) and identical output, so either it isn't applied for that model or reasoning tokens aren't reported. A per-model table of which `chat_template_kwargs` are supported would save guesswork.
 
 **Suggestions**
-- TODO: e.g. show per-request cost in the response or dashboard; document reasoning toggles per model.
+- Return the cost of each request (or a running total) alongside `usage`. We computed it ourselves from the price list to show "cost per statement" in the app.
+- List supported reasoning controls (on/off, low-effort, budgets) per model on the model page.
 
 ## Nemotron models
-- Nano: TODO categoriser accuracy, JSON reliability (how often the retry fired).
-- Super: TODO tool-call reliability on the 10 test questions, Hinglish quality.
-- Ultra: TODO report quality, latency, how often the number check flagged something.
+- **Nano** (categoriser): 91% accuracy on 100 hand-labelled Indian merchants with rules + Nano; on the 23 hardest names Nano alone got 14/23 (61%). JSON output was valid every time; the retry for bad JSON never fired. Its main weakness was choosing "Other" for recognisable but regional brands (CTR, Nayara, Indane), which clearer category guidance partly fixed (88% → 91%).
+- **Super** (tool-calling chat): chose a sensible tool in 10/10 test questions and chained calls when needed (e.g. 4× `compare_months`). It handled Hinglish well once we told it which language to answer in. Without explicit rules it sometimes invented "suggested" targets (Rs 1,500 / Rs 4,000) and once labelled a 3-month total as "September", so we added a number check and period labels on every tool result.
+- **Ultra** (coach report): returned a valid report and a specific, well-grounded summary (deficit, top 3 categories, merchant-level actions). Latency: ULTRA_LATENCY. It once computed a ratio itself ("2.8× higher on weekends"), which we now forbid in the prompt.
 
-## Nebius AI Cloud
-- TODO: Serverless Endpoints deploy experience, or why we fell back to another host.
+## Hosting
+- DEPLOY_HOST: DEPLOY_NOTES
