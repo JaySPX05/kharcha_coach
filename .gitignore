@@ -8,6 +8,7 @@
 *.xlsx
 !data/sample/*.pdf
 !data/sample/*.csv
+!data/eval/*.csv
 
 # python
 .venv/
@@ -17,3 +18,6 @@ __pycache__/
 
 # streamlit
 .streamlit/secrets.toml
+
+# merchant category cache (built at runtime)
+data/cache/

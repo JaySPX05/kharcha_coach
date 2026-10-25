@@ -85,6 +85,41 @@ No statement handy? Use the **sample** button in the app, or the synthetic files
 `core/` has no network code and never imports `llm/` — the whole data pipeline and its tests run
 with no API key. Tests assert that no 10-digit number and no person's name survives `redact()`.
 
+## How we use NVIDIA Nemotron and Nebius Token Factory
+
+Three Nemotron 3 models, each sized to its job, all called at runtime through Token Factory's
+OpenAI-compatible API (`llm/client.py` is the only place that talks to it):
+
+| Tier | Model (Token Factory ID) | Job | Why this size |
+|---|---|---|---|
+| Nano | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` | Categorise unique merchants, 40 per call | High volume, short answers; cheapest tier ($0.06 / $0.24 per 1M tokens). Reasoning off. |
+| Super | `nvidia/nemotron-3-super-120b-a12b` | Chat that calls our pandas helpers as tools | Needs dependable tool calling at chat speed. Reasoning off. |
+| Ultra | `nvidia/Nemotron-3-Ultra-550b-a55b` | Monthly coach report | One call per month that needs real reasoning over many numbers ($1 / $3 per 1M). Reasoning on. |
+
+**The model never does arithmetic.** Super gets five tools (`spend_by`, `top_merchants`,
+`compare_months`, `list_transactions`, `month_overview`) that wrap `core/insights.py`. It decides
+*which* calculation to run; pandas runs it; Super phrases the result. Ultra only receives the
+`compute_insights()` dict. After every answer, `llm/verify.py` extracts each number the model wrote
+and flags any that isn't in (or a simple sum/difference of) the computed results — the app shows a
+warning if that ever happens.
+
+**Categorising cheaply.** Rules handle people (with UPI remarks like "rent"), credits, ATM and ~100
+known Indian merchants. Only the leftovers go to Nano, as unique merchant names, 40 per request,
+with JSON validated against the fixed category list and one retry. Results are cached by normalised
+merchant name, so a merchant is classified once, ever. User fixes in the dashboard override the cache.
+
+**What each model sees** is shown in the app's *What the AI saw* tab, with calls, tokens and
+estimated cost per statement in the footer.
+
+| Measured (fill in from `scripts/eval_categorize.py` and the app footer) | Value |
+|---|---|
+| Categoriser accuracy, 100 hand-labelled merchants (rules + Nano) | TODO |
+| …of which decided by Nano | TODO |
+| Avg latency: Nano / Super / Ultra | TODO |
+| Model calls, tokens and cost for the sample statement | TODO |
+
+Other Nebius services: TODO (e.g. Serverless Endpoints if we deploy there).
+
 ## Supported statements
 
 - **CSV** exports with a header row containing Date, Narration/Description/Particulars, and either
