@@ -1,0 +1,101 @@
+counterparty,vpa,cp_type,direction,channel,label
+Swiggy,swiggy@ybl,merchant,debit,UPI,Food delivery
+Zomato,zomato@hdfcbank,merchant,debit,UPI,Food delivery
+SWIGGY INSTAMART,instamart@icici,merchant,debit,UPI,Groceries
+Zepto,zeptomarketplace@ybl,merchant,debit,UPI,Groceries
+Blinkit,blinkit@axl,merchant,debit,UPI,Groceries
+BigBasket,bigbasket@icici,merchant,debit,UPI,Groceries
+Rapido,rapido@axl,merchant,debit,UPI,Transport
+Uber India,uber@icici,merchant,debit,CARD,Transport
+Namma Metro,bmrcl@sbi,merchant,debit,UPI,Transport
+Amazon Pay,amazon@apl,merchant,debit,UPI,Shopping
+Myntra Designs,myntra@icici,merchant,debit,UPI,Shopping
+Flipkart,flipkart@axisbank,merchant,debit,UPI,Shopping
+Spotify India,spotify@hdfcbank,merchant,debit,CARD,Subscriptions
+Netflix,netflix@icici,merchant,debit,CARD,Subscriptions
+Airtel Prepaid,airtelpp@paytm,merchant,debit,UPI,Bills & recharge
+Jio Recharge,jio@ybl,merchant,debit,UPI,Bills & recharge
+IRCTC,irctc@sbi,merchant,debit,UPI,Travel
+BookMyShow,bookmyshow@icici,merchant,debit,UPI,Entertainment
+Zerodha Broking,zerodha@hdfcbank,merchant,debit,UPI,Investments
+Starbucks,starbucks@icici,merchant,debit,CARD,Eating out
+Person_01,Person_01@okaxis,person,debit,UPI,Transfers to people
+Person_02,XXXXXX4521@ybl,person,debit,UPI,Transfers to people
+Person_03,Person_03@okicici,person,debit,UPI,Transfers to people
+Person_04,XXXXXX9087@paytm,person,debit,UPI,Transfers to people
+Person_05,Person_05@oksbi,person,debit,UPI,Transfers to people
+ATM WDL,,unknown,debit,ATM,Cash withdrawal
+ATM CASH,,unknown,debit,ATM,Cash withdrawal
+Person_06,Person_06@okhdfcbank,person,credit,UPI,Income
+ALLOWANCE,,unknown,credit,NEFT,Income
+AMAZON REFUND,amazon@apl,merchant,credit,UPI,Income
+SRI LAKSHMI GENERAL STORES,q218734561@ybl,merchant,debit,UPI,Groceries
+MANJUNATHA PROVISION STORE,paytmqr281005050101@paytm,merchant,debit,UPI,Groceries
+NANDINI MILK PARLOUR,q901234567@ybl,merchant,debit,UPI,Groceries
+FRESH VEG AND FRUITS,paytmqr2810050501xy@paytm,merchant,debit,UPI,Groceries
+SUNRISE PG FOR GENTS,sunrisepg@okicici,merchant,debit,UPI,Rent
+STANZA LIVING,stanzaliving@icici,merchant,debit,UPI,Rent
+ZOLO STAYS,zolostays@hdfcbank,merchant,debit,UPI,Rent
+SRI SAI LADIES HOSTEL,saihostel@ybl,merchant,debit,UPI,Rent
+RVCE FEE COLLECTION,rvcefees@sbi,merchant,debit,NEFT,Education
+PES UNIVERSITY,pesu@axisbank,merchant,debit,NEFT,Education
+UNACADEMY,unacademy@icici,merchant,debit,UPI,Education
+NPTEL EXAM FEE,nptel@sbi,merchant,debit,UPI,Education
+BANGALORE CHAI POINT,chaipoint@icici,merchant,debit,UPI,Eating out
+RAMESHWARAM CAFE,rameshwaramcafe@ybl,merchant,debit,UPI,Eating out
+COLLEGE CANTEEN,q456789123@ybl,merchant,debit,UPI,Eating out
+VIDYARTHI BHAVAN,vidyarthibhavan@okaxis,merchant,debit,UPI,Eating out
+CTR SHRI SAGAR,q776655443@ybl,merchant,debit,UPI,Eating out
+THIRD WAVE COFFEE,thirdwave@icici,merchant,debit,CARD,Eating out
+TEA TIME,q112233445@ybl,merchant,debit,UPI,Eating out
+MEGHANA FOODS,meghanafoods@hdfcbank,merchant,debit,UPI,Eating out
+BESCOM BILL DESK,bescom@billdesk,merchant,debit,UPI,Bills & recharge
+ACT FIBERNET,actfibernet@icici,merchant,debit,UPI,Bills & recharge
+TATA PLAY,tataplay@ybl,merchant,debit,UPI,Bills & recharge
+INDANE GAS,indane@sbi,merchant,debit,UPI,Bills & recharge
+MEDPLUS KORAMANGALA,medplus@ybl,merchant,debit,UPI,Health
+APOLLO PHARMACY,apollopharmacy@icici,merchant,debit,UPI,Health
+PRACTO,practo@hdfcbank,merchant,debit,UPI,Health
+CULT FIT,cultfit@icici,merchant,debit,UPI,Health
+DR SHARMA CLINIC,q334455667@ybl,merchant,debit,UPI,Health
+PVR CINEMAS,pvrcinemas@icici,merchant,debit,UPI,Entertainment
+TIMEZONE GAMING,timezone@ybl,merchant,debit,UPI,Entertainment
+SMAAASH,smaaash@icici,merchant,debit,UPI,Entertainment
+WONDERLA HOLIDAYS,wonderla@hdfcbank,merchant,debit,UPI,Entertainment
+REDBUS,redbus@icici,merchant,debit,UPI,Travel
+MAKEMYTRIP,makemytrip@icici,merchant,debit,UPI,Travel
+KSRTC,ksrtc@sbi,merchant,debit,UPI,Travel
+ZOSTEL,zostel@ybl,merchant,debit,UPI,Travel
+INDIGO,indigo@icici,merchant,debit,CARD,Travel
+GROWW,groww@axisbank,merchant,debit,UPI,Investments
+ICICI PRU MF,icicipruamc@icici,merchant,debit,UPI,Investments
+INDMONEY,indmoney@ybl,merchant,debit,UPI,Investments
+YOUTUBE PREMIUM,googleplay@axisbank,merchant,debit,CARD,Subscriptions
+GOOGLE ONE,googleone@axisbank,merchant,debit,CARD,Subscriptions
+JIOHOTSTAR,jiohotstar@icici,merchant,debit,UPI,Subscriptions
+LINKEDIN PREMIUM,linkedin@icici,merchant,debit,CARD,Subscriptions
+NOTION LABS,notion@icici,merchant,debit,CARD,Subscriptions
+INDIAN OIL PETROL PUMP,iocl@ybl,merchant,debit,UPI,Fuel
+HP PETROL BUNK,q556677889@ybl,merchant,debit,UPI,Fuel
+NAYARA ENERGY,nayara@icici,merchant,debit,UPI,Fuel
+DECATHLON SPORTS,decathlon@icici,merchant,debit,UPI,Shopping
+LENSKART,lenskart@icici,merchant,debit,UPI,Shopping
+SAPNA BOOK HOUSE,sapnabooks@ybl,merchant,debit,UPI,Shopping
+COMMERCIAL STREET FASHION,q998877665@ybl,merchant,debit,UPI,Shopping
+NYKAA,nykaa@icici,merchant,debit,UPI,Shopping
+DUNZO DAILY,dunzo@icici,merchant,debit,UPI,Groceries
+COUNTRY DELIGHT,countrydelight@ybl,merchant,debit,UPI,Groceries
+MORE RETAIL,moreretail@icici,merchant,debit,CARD,Groceries
+EATSURE,eatsure@ybl,merchant,debit,UPI,Food delivery
+SWIGGY ONE,swiggyone@ybl,merchant,debit,UPI,Food delivery
+DOMINOS PIZZA,dominos@icici,merchant,debit,UPI,Eating out
+KFC,kfc@ybl,merchant,debit,UPI,Eating out
+BLUE TOKAI,bluetokai@icici,merchant,debit,UPI,Eating out
+URBAN COMPANY,urbancompany@icici,merchant,debit,UPI,Other
+LAUNDRY WALA,q665544332@ybl,merchant,debit,UPI,Other
+XEROX AND PRINTOUTS,q443322110@ybl,merchant,debit,UPI,Education
+OLA ELECTRIC,olaelectric@icici,merchant,debit,UPI,Transport
+BMTC BUS PASS,bmtc@sbi,merchant,debit,UPI,Transport
+YULU BIKES,yulu@icici,merchant,debit,UPI,Transport
+PAYTM WALLET LOAD,paytm@paytm,merchant,debit,UPI,Other
+CRED CLUB,cred.club@axisbank,merchant,debit,UPI,Bills & recharge

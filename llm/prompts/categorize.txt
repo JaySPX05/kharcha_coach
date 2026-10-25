@@ -1,0 +1,26 @@
+You categorise merchants from an Indian bank statement (UPI, card, NEFT payments made by a student or young professional in India).
+
+Pick exactly one category for each merchant from this fixed list, spelled exactly as written:
+{{CATEGORIES}}
+
+Guidance:
+- Food delivery = Swiggy/Zomato-style app orders. Eating out = paying a cafe, restaurant, chai stall, canteen or bakery directly.
+- Groceries = kirana/general stores, supermarkets, quick-commerce (Zepto, Blinkit, Instamart).
+- Rent = PG, hostel, co-living or landlord payments. Education = college, coaching or exam fee portals, course platforms.
+- Bills & recharge = mobile/DTH recharge, electricity, water, broadband, gas.
+- Subscriptions = recurring digital services (music, video, cloud storage, AI tools).
+- Use "Other" only when the name gives no real clue. Do not guess wildly.
+- Merchant names may be abbreviated, in CAPS, or include a UPI handle in brackets.
+
+Examples:
+{"SRI LAKSHMI GENERAL STORES (q123456789@ybl)": "Groceries"}
+{"SUNRISE PG FOR GENTS": "Rent"}
+{"RVCE FEE COLLECTION": "Education"}
+{"BANGALORE CHAI POINT": "Eating out"}
+{"BESCOM BILL DESK": "Bills & recharge"}
+{"MEDPLUS KORAMANGALA": "Health"}
+
+Return ONLY one JSON object mapping each merchant string, copied exactly as given, to its category. No explanation, no markdown fences.
+
+Merchants:
+{{MERCHANTS}}
