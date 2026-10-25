@@ -1,10 +1,46 @@
+# Theme "Ocean teal": deep-teal ledger-cover sidebar, cool white page, teal accent, orange for spend.
+# Extra colours (charts, hero, calendar) live in the C palette at the top of app/main.py; keep the two in sync.
 [theme]
-base = "light"
-primaryColor = "#E8590C"
-backgroundColor = "#FBFAF7"
-secondaryBackgroundColor = "#F2EFE8"
-textColor = "#1F2328"
-font = "sans serif"
+font = "Geist:https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap, sans-serif"
+headingFont = "Bricolage Grotesque:https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap, sans-serif"
+codeFont = "Geist Mono:https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap, monospace"
+headingFontWeights = [750, 700, 650, 600, 600, 600]
+metricValueFontSize = "1.9rem"
+metricValueFontWeight = 650
+baseRadius = "0.75rem"
+buttonRadius = "0.75rem"
+showWidgetBorder = true
+chartCategoricalColors = ["#0C8599", "#F08C00", "#5C7CFA", "#E64980", "#74B816", "#845EF7", "#868E96", "#15AABF", "#FAB005", "#ADB5BD"]
+
+[theme.light]
+primaryColor = "#0B7285"
+backgroundColor = "#F3F7F7"
+secondaryBackgroundColor = "#E4EDEE"
+textColor = "#122326"
+borderColor = "#D3E0E1"
+linkColor = "#0B7285"
+
+[theme.dark]
+primaryColor = "#0B7285"
+backgroundColor = "#0A1A1D"
+secondaryBackgroundColor = "#13282C"
+textColor = "#E2EEEF"
+borderColor = "#21393D"
+linkColor = "#3BC9DB"
+
+[theme.light.sidebar]
+backgroundColor = "#0B2E33"
+secondaryBackgroundColor = "#123F45"
+textColor = "#E3F1F2"
+borderColor = "#1D4A50"
+linkColor = "#8FDDE6"
+
+[theme.dark.sidebar]
+backgroundColor = "#0B2E33"
+secondaryBackgroundColor = "#123F45"
+textColor = "#E3F1F2"
+borderColor = "#1D4A50"
+linkColor = "#8FDDE6"
 
 [server]
 maxUploadSize = 20

@@ -187,6 +187,15 @@ def top_merchants(df: pd.DataFrame, n: int = 10, month: str | None = None) -> li
     return _totals(spend[spend["cp_type"] == "merchant"], "counterparty", "merchant")[:n]
 
 
+def daily_spend(df: pd.DataFrame, month: str) -> list[dict]:
+    """Spend on every calendar day of `month`, days with no spend included as 0."""
+    _check_month(month)
+    spend = _debits(_prep(df), month)
+    g = spend.groupby(spend["_date"].dt.day)["amount"].agg(["sum", "count"])
+    return [{"date": str(day), "total": _num(g["sum"].get(day.day, 0.0)), "count": int(g["count"].get(day.day, 0))}
+            for day in pd.period_range(f"{month}-01", periods=pd.Period(month).days_in_month, freq="D")]
+
+
 def compare_months(df: pd.DataFrame, m1: str, m2: str) -> dict:
     """Spend in m1 vs m2, overall and per category. change = m2 - m1."""
     _check_month(m1)

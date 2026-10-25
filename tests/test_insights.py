@@ -3,7 +3,8 @@ import json
 import pandas as pd
 import pytest
 
-from core.insights import compare_months, compute_insights, list_transactions, spend_by, top_merchants
+from core.insights import (compare_months, compute_insights, daily_spend, list_transactions, spend_by,
+                           top_merchants)
 from tests.conftest import _run
 
 # Hand-checkable statement. Aug 1 2026 is a Saturday, Sep 1 2026 a Tuesday.
@@ -42,6 +43,14 @@ def test_summary(df):
     assert ins["summary"] == {"month": "2026-09", "income": 10000.0, "spend": 4389.0, "net": 5611.0,
                               "savings_rate": 56.11, "txn_count": 8}
     assert ins["monthly"][0]["spend"] == 1859.0  # Aug: 300+20+20+119+500+900
+
+
+def test_daily_spend(df):
+    days = daily_spend(df, "2026-09")
+    assert len(days) == 30 and days[0] == {"date": "2026-09-01", "total": 0.0, "count": 0}  # credit only
+    assert days[4] == {"date": "2026-09-05", "total": 400.0, "count": 1}
+    assert sum(d["total"] for d in days) == 4389.0  # matches the month's spend
+    json.dumps(days)
 
 
 def test_by_category_and_top_merchants(df):
