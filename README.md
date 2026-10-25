@@ -113,8 +113,8 @@ estimated cost per statement in the footer.
 
 | Measured (fill in from `scripts/eval_categorize.py` and the app footer) | Value |
 |---|---|
-| Categoriser accuracy, 100 hand-labelled merchants (rules + Nano) | TODO |
-| …of which decided by Nano | TODO |
+| Categoriser accuracy, 100 hand-labelled merchants (rules + Nano) | 91% (rules 77/77, one Nano call, $0.00015) |
+| …of which decided by Nano | 14/23 hardest leftovers (61%) |
 | Avg latency: Nano / Super / Ultra | TODO |
 | Model calls, tokens and cost for the sample statement | TODO |
 

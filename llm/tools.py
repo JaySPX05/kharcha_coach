@@ -20,7 +20,8 @@ TOOL_SCHEMAS = [
     {"type": "function", "function": {
         "name": "spend_by",
         "description": "Total amount spent (debits) and number of payments, optionally filtered by merchant "
-                       "name (case-insensitive substring, e.g. 'swiggy'), category and month.",
+                       "name (case-insensitive substring, e.g. 'swiggy'), category and month. For money sent to "
+                       "friends use category 'Transfers to people'.",
         "parameters": {"type": "object", "properties": {
             "merchant": {"type": "string", "description": "Merchant name or part of it, or a person alias like Person_03."},
             "category": {"type": "string", "enum": list(CATEGORIES)},
@@ -51,7 +52,6 @@ TOOL_SCHEMAS = [
             "merchant": {"type": "string"},
             "category": {"type": "string", "enum": list(CATEGORIES)},
             "direction": {"type": "string", "enum": ["debit", "credit"]},
-            "cp_type": {"type": "string", "enum": ["merchant", "person", "unknown"]},
             "min_amount": {"type": "number"},
             "max_amount": {"type": "number"},
             "limit": {"type": "integer", "minimum": 1, "maximum": 50},
@@ -65,11 +65,75 @@ TOOL_SCHEMAS = [
                        "questions like 'what can I cut' or 'how am I doing'.",
         "parameters": {"type": "object", "properties": {"month": MONTH}},
     }},
+    {"type": "function", "function": {
+        "name": "sum_transactions",
+        "description": "Total, count and per-merchant / per-category totals for transactions matching filters, "
+                       "including amount ranges. Money sent to friends = category 'Transfers to people'. Use for questions like 'how much on payments under Rs 200', "
+                       "'how much on chai and snacks', 'total of payments above Rs 1000'.",
+        "parameters": {"type": "object",
+        "properties": {
+            "month": MONTH,
+            "merchant": {"type": "string", "description": "Merchant name or part of it, or a person alias."},
+            "category": {"type": "string", "enum": list(CATEGORIES)},
+            "direction": {"type": "string", "enum": ["debit", "credit"], "description": "Default debit (money spent)."},
+            "min_amount": {"type": "number", "description": "Only payments of at least this many rupees."},
+            "max_amount": {"type": "number", "description": "Only payments of at most this many rupees."},
+        }},
+    }},
+    {"type": "function", "function": {
+        "name": "largest_transactions",
+        "description": "The biggest transactions by amount (largest first), with optional filters. "
+                       "Use for 'biggest', 'largest', 'most expensive' questions.",
+        "parameters": {"type": "object",
+        "properties": {
+            "month": MONTH,
+            "merchant": {"type": "string", "description": "Merchant name or part of it, or a person alias."},
+            "category": {"type": "string", "enum": list(CATEGORIES)},
+            "direction": {"type": "string", "enum": ["debit", "credit"], "description": "Default debit (money spent)."},
+            "min_amount": {"type": "number", "description": "Only payments of at least this many rupees."},
+            "max_amount": {"type": "number", "description": "Only payments of at most this many rupees."},
+            "n": {"type": "integer", "minimum": 1, "maximum": 20, "description": "How many (default 5)."},
+        }},
+    }},
+    {"type": "function", "function": {
+        "name": "recurring_payments",
+        "description": "Recurring payments and subscriptions detected across months (same payee, similar amount, "
+                       "about monthly): rent, recharges, streaming, etc. Use for 'subscriptions', 'fixed costs', "
+                       "'what do I pay every month'.",
+        "parameters": {"type": "object", "properties": {}},
+    }},
 ]
 
 
 def _list_tx(df, limit=20, **filters):
     return ins.list_transactions(df, {k: v for k, v in filters.items() if v not in (None, "")}, limit=limit or 20)
+
+
+def _matching(df, direction="debit", **filters) -> pd.DataFrame:
+    """All transactions matching the filters, as a DataFrame. Filtering is done by
+    core/insights.list_transactions so the semantics match the other tools."""
+    f = {k: v for k, v in {**filters, "direction": direction}.items() if v not in (None, "")}
+    rows = ins.list_transactions(df, f, limit=len(df))
+    return pd.DataFrame(rows, columns=["txn_id", "date", "counterparty", "amount", "direction", "category", "channel"])
+
+
+def _sum_tx(df, **filters):
+    m = _matching(df, **filters)
+    by = lambda col, label: [  # noqa: E731
+        {label: str(k), "total": round(float(v["amount"].sum()), 2), "count": int(len(v))}
+        for k, v in sorted(m.groupby(col), key=lambda kv: -kv[1]["amount"].sum())][:10]
+    return {"filters": {k: v for k, v in filters.items() if v is not None},
+            "total": round(float(m["amount"].sum()), 2), "count": int(len(m)),
+            "by_merchant": by("counterparty", "merchant"), "by_category": by("category", "category")}
+
+
+def _largest(df, n=5, **filters):
+    m = _matching(df, **filters).sort_values("amount", ascending=False, kind="stable").head(int(n or 5))
+    return m.drop(columns=["txn_id"]).to_dict("records")
+
+
+def _recurring(df):
+    return ins.compute_insights(df)["recurring"]
 
 
 TOOLS: dict[str, Callable[..., Any]] = {
@@ -78,7 +142,22 @@ TOOLS: dict[str, Callable[..., Any]] = {
     "compare_months": lambda df, m1, m2: ins.compare_months(df, m1, m2),
     "list_transactions": _list_tx,
     "month_overview": lambda df, month=None: ins.compute_insights(df, month),
+    "sum_transactions": _sum_tx,
+    "largest_transactions": _largest,
+    "recurring_payments": _recurring,
 }
+
+
+def _period(name: str, args: dict, df: pd.DataFrame) -> str:
+    """Say which months a result covers, so the model can't label an all-months total as 'September'."""
+    if name == "compare_months":
+        return f"{args.get('m1')} vs {args.get('m2')}"
+    if args.get("month"):
+        return str(args["month"])
+    if name == "month_overview":
+        return "latest month (see 'month' in the result)"
+    months = sorted(pd.to_datetime(df["date"]).dt.strftime("%Y-%m").unique())
+    return f"ALL months combined ({months[0]} to {months[-1]}), not a single month" if months else "all months"
 
 
 def run_tool(name: str, args: dict | str | None, df: pd.DataFrame) -> dict:
@@ -92,7 +171,7 @@ def run_tool(name: str, args: dict | str | None, df: pd.DataFrame) -> dict:
     if name not in TOOLS:
         return {"error": f"unknown tool {name!r}; available: {list(TOOLS)}"}
     try:
-        return {"result": TOOLS[name](df, **args)}
+        return {"period": _period(name, args, df), "result": TOOLS[name](df, **args)}
     except TypeError as e:
         return {"error": f"bad arguments for {name}: {e}"}
     except ValueError as e:
@@ -111,6 +190,10 @@ def txn_count(name: str, result: Any) -> int:
         return len(result)
     if name == "compare_months":
         return 0
+    if name == "sum_transactions":
+        return int(result.get("count", 0))
+    if name == "largest_transactions":
+        return len(result)
     if name == "month_overview":
         return int(result.get("summary", {}).get("txn_count", 0))
     return 0

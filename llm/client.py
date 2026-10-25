@@ -46,8 +46,8 @@ PRICES = {
 THINKING = {"nano": False, "super": False, "ultra": True}
 
 TIMEOUT_S = float(os.getenv("LLM_TIMEOUT_S", "90"))
-MAX_RETRIES = 3
-RETRYABLE_STATUS = {408, 409, 429, 500, 502, 503, 504}
+MAX_RETRIES = 4
+RETRYABLE_STATUS = {408, 409, 429, 500, 502, 503, 504, 520, 522, 524, 529}  # 529 = "System is overloaded"
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 

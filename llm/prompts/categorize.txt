@@ -9,7 +9,12 @@ Guidance:
 - Rent = PG, hostel, co-living or landlord payments. Education = college, coaching or exam fee portals, course platforms.
 - Bills & recharge = mobile/DTH recharge, electricity, water, broadband, gas.
 - Subscriptions = recurring digital services (music, video, cloud storage, AI tools).
-- Use "Other" only when the name gives no real clue. Do not guess wildly.
+- Bills & recharge also covers DTH/TV recharge, cooking gas cylinders and credit-card bill payment apps.
+- Fuel = petrol pumps and fuel companies. Investments = stock brokers, mutual funds, investing apps.
+- Supermarket chains are Groceries even if they sell other things. Branded coffee or cafe chains are Eating out.
+- Book shops, stationery and print shops near colleges: Education if it is clearly study material or printing, otherwise Shopping.
+- Use what you know about Indian brands and chains: most names are recognisable.
+- "Other" is a last resort: only when the name gives no clue at all. A reasonable best guess beats "Other".
 - Merchant names may be abbreviated, in CAPS, or include a UPI handle in brackets.
 
 Examples:
