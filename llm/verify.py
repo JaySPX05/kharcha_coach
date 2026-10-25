@@ -11,7 +11,6 @@ import re
 from typing import Any, Iterable
 
 _NUM = re.compile(r"(?<![A-Za-z_])\d{1,3}(?:,\d{2,3})+(?:\.\d+)?|(?<![A-Za-z_])\d+(?:\.\d+)?")
-MAX_PAIR_SOURCE = 400  # cap so pairwise sums stay cheap
 
 
 def numbers_in(obj: Any) -> list[float]:
@@ -34,31 +33,38 @@ def numbers_in(obj: Any) -> list[float]:
 
 def _close(a: float, allowed: Iterable[float]) -> bool:
     for b in allowed:
-        if abs(a - b) <= max(1.0, abs(b) * 0.005):  # allow rounding: 5,998.5 -> 5,999; 21.4% -> 21%
+        if abs(a - b) <= 1.0:  # rounding to whole rupees / whole percent only; "about 8,000" for 8,048 is flagged
             return True
     return False
 
 
 def unverified_numbers(text: str, source: Any, *, allow_small: int = 31) -> list[str]:
-    """Numbers in `text` that are not in `source` or a sum/difference of two of them.
+    """Numbers in `text` that can't be traced to `source`.
 
-    Small integers (<= 31: counts, days, "3 actions") and years are allowed.
+    A number is traced if it is in `source` (within rounding), or is the sum or
+    difference of two numbers that the text itself quotes and that are traced
+    ("from Rs 3,007 to Rs 5,999, up Rs 2,992"). Pairs are limited to numbers
+    quoted in the text: with hundreds of source numbers, almost any round figure
+    is *some* difference by chance. Small integers (<= 31: counts, days) and
+    years are always allowed.
     """
     src = sorted({abs(x) for x in numbers_in(source)})
-    pool = set(src)
-    top = sorted(src, reverse=True)[:MAX_PAIR_SOURCE]
-    for a, b in itertools.combinations(top, 2):
-        pool.add(a + b)
-        pool.add(abs(a - b))
-    pool = sorted(pool)
+    found = [(raw, float(raw.replace(",", ""))) for raw in _NUM.findall(text or "")]
+
+    def trivial(v: float) -> bool:
+        return v <= allow_small
+
+    direct = [v for _, v in found if not trivial(v) and _close(v, src)]
+    derived = {a + b for a, b in itertools.combinations(direct, 2)} | \
+              {abs(a - b) for a, b in itertools.combinations(direct, 2)}
 
     flagged = []
-    for raw in _NUM.findall(text or ""):
-        val = float(raw.replace(",", ""))
-        if val <= allow_small or 2000 <= val <= 2100 and val == int(val):
+    for raw, val in found:
+        if raw.isdigit() and 2000 <= val <= 2100 and len(raw) == 4:
+            continue  # a year
+        if val <= allow_small or _close(val, src) or _close(val, derived):
             continue
-        if not _close(val, pool):
-            flagged.append(raw)
+        flagged.append(raw)
     return flagged
 
 

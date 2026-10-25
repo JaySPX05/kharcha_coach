@@ -7,6 +7,7 @@ Prints overall accuracy, accuracy split by who decided (rule vs llm), per-catego
 precision/recall, and every mistake. Uses a throwaway cache so results are honest.
 """
 import argparse
+import os
 import sys
 import tempfile
 from collections import Counter
@@ -17,11 +18,15 @@ sys.path.insert(0, str(ROOT))
 
 import pandas as pd  # noqa: E402
 
+if "--thinking" in sys.argv:
+    os.environ["CATEGORIZE_THINKING"] = "1"
+
 from llm.categorize import categorize  # noqa: E402
 from llm.client import usage_summary  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--rules-only", action="store_true", help="no model calls; unmatched rows count as wrong")
+ap.add_argument("--thinking", action="store_true", help="let Nano reason before answering")
 args = ap.parse_args()
 
 gold = pd.read_csv(ROOT / "data" / "eval" / "labelled_merchants.csv").fillna({"vpa": ""})

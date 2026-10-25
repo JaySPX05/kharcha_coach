@@ -25,6 +25,9 @@ from llm.categories import CATEGORIES, normalise_merchant, rule_category
 from llm.client import chat
 
 BATCH_SIZE = 40
+# Nano thinks before answering when this is on: slower and more tokens, but better on
+# unfamiliar merchant names. Measured with scripts/eval_categorize.py --thinking.
+THINKING = os.getenv("CATEGORIZE_THINKING", "0").lower() in ("1", "true", "yes")
 PROMPT_PATH = Path(__file__).parent / "prompts" / "categorize.txt"
 CACHE_PATH = Path(os.getenv("CATEGORY_CACHE", Path(__file__).resolve().parents[1] / "data" / "cache" / "merchant_categories.json"))
 
@@ -79,7 +82,8 @@ def classify_batch(merchants: list[str]) -> dict[str, str]:
     messages = [{"role": "user", "content": _build_prompt(merchants)}]
     result: dict[str, str] = {}
     for attempt in range(2):
-        msg = chat("nano", messages, purpose="categorize", temperature=0, max_tokens=3000,
+        msg = chat("nano", messages, purpose="categorize", temperature=0,
+                   max_tokens=12000 if THINKING else 3000, thinking=THINKING,
                    payload_preview={"merchants": merchants})
         try:
             raw = _extract_json(msg.content)

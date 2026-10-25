@@ -39,6 +39,20 @@ def _system_prompt(df: pd.DataFrame) -> str:
             .replace("{{YEAR}}", latest[:4]))
 
 
+_HINGLISH = re.compile(r"\b(kitna|kitne|kitni|kya|kyu|kyun|mera|meri|mere|maine|mujhe|hai|hain|tha|kaha|kahan|"
+                       r"kharch|kharcha|paisa|paise|bheja|bheje|doston|dost|kaise|kab|kaun|bata|batao|zyada|kam)\b", re.I)
+
+
+def is_hinglish(text: str) -> bool:
+    """Two or more common Hindi words in Roman script -> treat as Hinglish."""
+    return len(_HINGLISH.findall(text or "")) >= 2
+
+
+def _language_note(question: str) -> dict:
+    lang = "Hinglish (Roman-script Hindi mixed with English)" if is_hinglish(question) else "English"
+    return {"role": "system", "content": f"Answer this question in {lang}."}
+
+
 def _calls_from_text(content: str) -> list[dict]:
     """Some servers return Nemotron's raw <tool_call>{...}</tool_call> text instead of
     parsed tool_calls. Recover them so the loop still works."""
@@ -53,14 +67,15 @@ def _calls_from_text(content: str) -> list[dict]:
     return calls
 
 
-def _result(text: str, trace: list[dict], mode: str) -> dict:
+def _result(text: str, trace: list[dict], mode: str, question: str = "") -> dict:
     results = [t["result"] for t in trace if "result" in t]
     return {
         "text": text.strip(),
         "tool_calls": [{"name": t["name"], "arguments": t["arguments"]} for t in trace],
         "numbers_used": results,
         "txn_count": sum(txn_count(t["name"], t.get("result")) for t in trace),
-        "unverified": unverified_numbers(text, results) if results else [],
+        # the user's own numbers ("save 3000") count as a source too
+        "unverified": unverified_numbers(text, [results, question]),
         "mode": mode,
     }
 
@@ -76,6 +91,7 @@ def answer(question: str, df: pd.DataFrame, history: list | None = None) -> dict
 
     messages = [{"role": "system", "content": _system_prompt(df)}]
     messages += [{"role": h["role"], "content": h["content"]} for h in (history or [])[-6:]]
+    messages.append(_language_note(question))
     messages.append({"role": "user", "content": question})
     trace: list[dict] = []
 
@@ -85,7 +101,7 @@ def answer(question: str, df: pd.DataFrame, history: list | None = None) -> dict
         calls = [{"id": c.id, "name": c.function.name, "arguments": c.function.arguments or "{}"}
                  for c in (msg.tool_calls or [])] or _calls_from_text(msg.content)
         if not calls:
-            return _result(msg.content or "", trace, "tools")
+            return _result(msg.content or "", trace, "tools", question)
 
         messages.append({"role": "assistant", "content": _TOOL_TAG.sub("", msg.content or "") or None,
                          "tool_calls": [{"id": c["id"], "type": "function",
@@ -101,7 +117,7 @@ def answer(question: str, df: pd.DataFrame, history: list | None = None) -> dict
     # out of rounds: ask for a final answer with no more tools
     messages.append({"role": "user", "content": "Answer now using only the tool results above."})
     msg = chat("super", messages, temperature=0.2, max_tokens=800, purpose="chat-final")
-    return _result(msg.content or "", trace, "tools")
+    return _result(msg.content or "", trace, "tools", question)
 
 
 # ------------------------------------------------------------- fallback mode
@@ -137,4 +153,4 @@ def answer_with_plan(question: str, df: pd.DataFrame, history: list | None = Non
     messages.append({"role": "user", "content": f"{question}\n\nData from our tools:\n"
                                                 f"{json.dumps(trace, ensure_ascii=False)}"})
     msg = chat("super", messages, temperature=0.2, max_tokens=800, purpose="chat")
-    return _result(msg.content or "", trace, "plan")
+    return _result(msg.content or "", trace, "plan", question)

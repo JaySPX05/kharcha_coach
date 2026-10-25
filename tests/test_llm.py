@@ -194,3 +194,68 @@ def test_unverified_allows_sums_rounding_and_small_counts():
     src = {"a": 3007.0, "b": 5999.0}
     assert unverified_numbers("Rs 3,007 to Rs 5,999, up Rs 2,992 across 18 orders in 2026", src) == []
     assert unverified_numbers("about Rs 4,100", src) == ["4,100"]
+
+
+# ---------- extra chat tools (added after live run: Q7 and Q8 failed without them)
+def test_largest_transactions_sorted_by_amount(pipeline):
+    rows = run_tool("largest_transactions", {"month": "2026-09", "n": 3}, pipeline.df)["result"]
+    amounts = [r["amount"] for r in rows]
+    assert len(rows) == 3 and amounts == sorted(amounts, reverse=True)
+    assert amounts[0] == pipeline.df.loc[pipeline.df["direction"] == "debit", "amount"][
+        pipeline.df["date"].astype(str).str.startswith("2026-09")].max()
+
+
+def test_sum_transactions_matches_small_ticket_insight(pipeline):
+    res = run_tool("sum_transactions", {"month": "2026-09", "max_amount": 199.99}, pipeline.df)["result"]
+    st = pipeline.insights["small_ticket"]
+    assert (res["total"], res["count"]) == (st["total"], st["count"])
+
+
+def test_recurring_tool_includes_all_subscriptions(pipeline):
+    names = {r["counterparty"] for r in run_tool("recurring_payments", {}, pipeline.df)["result"]}
+    assert {"Netflix", "Spotify", "Jio Recharge"} <= names
+
+
+def test_retry_on_529_overloaded(fake, monkeypatch):
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    real = fake.chat.completions.create
+    calls = {"n": 0}
+
+    class Overloaded(Exception):
+        status_code = 529
+
+    def flaky(**kw):
+        calls["n"] += 1
+        if calls["n"] <= 2:
+            raise Overloaded("System is overloaded")
+        return real(**kw)
+    fake.chat.completions.create = flaky
+    assert client.chat("super", [{"role": "user", "content": "x"}]).content == "ok"
+    assert calls["n"] == 3
+
+
+def test_unverified_pairs_only_from_numbers_quoted_in_text():
+    src = {"a": 8048.0, "b": 12072.0}
+    # 4,024 is b - a, but the text doesn't quote a and b, so it's an invented figure
+    assert unverified_numbers("trim it by half and save Rs 4,024", src) == ["4,024"]
+    assert unverified_numbers("Rs 8,048 vs Rs 12,072, a gap of Rs 4,024", src) == []
+    assert unverified_numbers("about Rs 8,000", src) == ["8,000"]   # rounding to a new figure
+
+
+@pytest.mark.parametrize("q,expected", [
+    ("kitna paisa doston ko bheja?", True), ("Mera savings rate kya hai?", True),
+    ("Compare August and September", False), ("How much did I spend on Swiggy?", False),
+])
+def test_hinglish_detection(q, expected):
+    from llm.chat import is_hinglish
+    assert is_hinglish(q) is expected
+
+
+def test_tool_results_say_which_period(pipeline):
+    assert run_tool("spend_by", {"merchant": "swiggy"}, pipeline.df)["period"].startswith("ALL months")
+    assert run_tool("spend_by", {"merchant": "swiggy", "month": "2026-09"}, pipeline.df)["period"] == "2026-09"
+
+
+def test_person_filter_not_offered_to_model():
+    from llm.tools import TOOL_SCHEMAS
+    assert "cp_type" not in str(TOOL_SCHEMAS)   # 'person' includes rent; friends = Transfers to people
