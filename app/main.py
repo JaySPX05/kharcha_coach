@@ -162,8 +162,9 @@ with tab_dash:
     sr = summary["savings_rate"]
     k3.metric("Savings rate", "—" if sr is None else f"{sr:.0f}%",
               help="(received − spent) ÷ received. Negative means you spent more than came in.")
-    k4.metric("Biggest category", biggest["category"] if biggest else "—",
-              delta=rs(biggest["total"]) if biggest else None, delta_color="off")
+    k4.metric("Biggest category", biggest["category"] if biggest else "—")
+    if biggest:  # a caption, not a metric delta: an arrow would read as "went up"
+        k4.caption(f"{rs(biggest['total'])} · {biggest['share_pct']:.0f}% of spend")
 
     left, right = st.columns([1, 1])
     with left:
@@ -182,12 +183,14 @@ with tab_dash:
         st.markdown("**Month by month**")
         mdf = pd.DataFrame(ins["monthly"]).melt(id_vars="month", value_vars=["income", "spend"],
                                                  var_name="type", value_name="amount")
+        mdf["label"] = mdf["month"].map(lambda m: pd.Period(m).strftime("%b %Y"))
         bars = alt.Chart(mdf).mark_bar().encode(
-            x=alt.X("month:N", title=None), xOffset="type:N",
+            x=alt.X("label:N", title=None, sort=alt.SortField("month"), axis=alt.Axis(labelAngle=0)),
+            xOffset="type:N",
             y=alt.Y("amount:Q", title="Rs"),
             color=alt.Color("type:N", scale=alt.Scale(domain=["income", "spend"], range=["#2F9E77", "#E8590C"]),
                             legend=alt.Legend(title=None, orient="bottom")),
-            tooltip=["month", "type", alt.Tooltip("amount:Q", format=",.0f")],
+            tooltip=[alt.Tooltip("label:N", title="month"), "type", alt.Tooltip("amount:Q", format=",.0f")],
         ).properties(height=340)
         st.altair_chart(bars, width="stretch")
 
@@ -278,7 +281,7 @@ with tab_ask:
                     if m["unverified"]:
                         st.warning(f"Check these numbers — not found in the computed results: {', '.join(m['unverified'])}")
                     with st.expander("Show the calculation"):
-                        st.json(m["tool_calls_full"], expanded=False)
+                        st.json(m["tool_calls_full"], expanded=3)
 
         q = st.chat_input("Ask about your spending…") or clicked
         if q:
@@ -321,7 +324,7 @@ with tab_coach:
             st.markdown("### Three things to do next month")
             for i, a in enumerate(rep["actions"], 1):
                 with st.container(border=True):
-                    st.markdown(f"**{i}. {a['title']}** — impact about **{rs(a['rupee_impact'])}**")
+                    st.markdown(f"**{i}. {a['title']}** · {rs(a['rupee_impact'])} spent here last month")
                     st.write(a.get("detail", ""))
             st.markdown("### Budgets")
             bdf = pd.DataFrame(rep["budgets"])[["category", "last_month", "budget"]]
