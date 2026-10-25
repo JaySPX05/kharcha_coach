@@ -111,14 +111,26 @@ merchant name, so a merchant is classified once, ever. User fixes in the dashboa
 **What each model sees** is shown in the app's *What the AI saw* tab, with calls, tokens and
 estimated cost per statement in the footer.
 
-| Measured (fill in from `scripts/eval_categorize.py` and the app footer) | Value |
+| Measured on the sample statement (Oct 25, 2026) | Value |
 |---|---|
 | Categoriser accuracy, 100 hand-labelled merchants (rules + Nano) | 91% (rules 77/77, one Nano call, $0.00015) |
 | …of which decided by Nano | 14/23 hardest leftovers (61%) |
-| Avg latency: Nano / Super / Ultra | TODO |
-| Model calls, tokens and cost for the sample statement | TODO |
+| Avg latency per call: Nano / Super | 2.2 s (40-merchant batch) / 1.2 s (20 calls, 10 questions) |
+| Ultra coach report latency | ULTRA_LATENCY (from the app footer) |
+| Cost: categorising a 3-month statement / one chat answer / one coach report | < $0.001 (rules handle all but 2 merchants) / ~$0.002 (2 Super calls) / ULTRA_COST |
+| Chat: right tool chosen on the 10 test questions (final run) | 10/10; invented figures flagged by the number check in 1/10 |
 
-Other Nebius services: TODO (e.g. Serverless Endpoints if we deploy there).
+Hosting: DEPLOY_HOST (see Deploy below).
+
+## Deploy
+
+Streamlit Community Cloud (free, ~5 minutes):
+1. share.streamlit.io → **Create app** → repo `JaySPX05/kharcha_coach`, branch `main`, main file `app/main.py`.
+2. **Advanced settings** → Python 3.11 → Secrets: `NEBIUS_API_KEY = "..."`.
+3. Deploy, open the URL, press **Try sample**.
+
+Any container host: `docker build -t kharcha-coach .` then run with `-e NEBIUS_API_KEY=... -p 8501:8501`.
+The app reads the port from `$PORT`, so it also works on hosts that assign one.
 
 ## Supported statements
 
