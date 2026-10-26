@@ -2,6 +2,8 @@
 
 **Turn an Indian bank statement into a spending coach — without handing your bank data to a chatbot.**
 
+**Live demo:** https://kharchacoach-zezyq4ks4nvz9wkenp8od9.streamlit.app/ (press **Try sample** for a synthetic statement)
+
 Students and first-job earners make 150–300 small UPI payments a month. Statements show them as
 `UPI/DR/412345678901/SWIGGY/YESB/swiggy@ybl/Payment`, so nobody reads them. SMS-reading budget apps
 feel invasive, and generic chatbots invent numbers.
@@ -10,7 +12,7 @@ Kharcha Coach:
 
 1. reads your statement (PDF, including password-protected, or CSV),
 2. decodes every UPI narration into merchant, VPA and person-vs-merchant,
-3. **redacts PII on your machine** before anything reaches a model,
+3. **redacts PII in plain code** before anything reaches a model,
 4. categorises merchants with **NVIDIA Nemotron Nano**,
 5. computes every number with pandas,
 6. answers questions with **Nemotron Super**, which calls our pandas functions as tools,
@@ -127,7 +129,11 @@ Hosting: Streamlit Community Cloud (see Deploy below); all model calls go to Tok
 
 Streamlit Community Cloud (free, ~5 minutes):
 1. share.streamlit.io → **Create app** → repo `JaySPX05/kharcha_coach`, branch `main`, main file `app/main.py`.
-2. **Advanced settings** → Python 3.11 → Secrets: `NEBIUS_API_KEY = "..."`.
+2. **Advanced settings** → Python 3.11 → Secrets (TOML: quotes around values, plain `"` not curly quotes):
+   ```toml
+   NEBIUS_API_KEY = "your-key"
+   LLM_DAILY_BUDGET_USD = "1.0"   # optional; AI switches off for the rest of the UTC day once reached
+   ```
 3. Deploy, open the URL, press **Try sample**.
 
 Any container host: `docker build -t kharcha-coach .` then run with `-e NEBIUS_API_KEY=... -p 8501:8501`.
