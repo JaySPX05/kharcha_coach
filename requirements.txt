@@ -8,5 +8,5 @@ pytest>=8.0
 
 # llm + app (teammate)
 openai>=1.40
-streamlit>=1.50
+streamlit>=1.66  # metric sparklines + delta_description; tested on 1.66
 altair>=5.0

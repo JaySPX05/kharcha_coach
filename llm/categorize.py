@@ -22,7 +22,7 @@ from pathlib import Path
 import pandas as pd
 
 from llm.categories import CATEGORIES, normalise_merchant, rule_category
-from llm.client import chat
+from llm.client import BudgetExceeded, chat
 
 BATCH_SIZE = 40
 # Nano thinks before answering when this is on: slower and more tokens, but better on
@@ -176,7 +176,10 @@ def categorize(df: pd.DataFrame, *, use_llm: bool = True, cache_path: Path | Non
         labels = list(pending)
         for i in range(0, len(labels), BATCH_SIZE):
             batch = labels[i:i + BATCH_SIZE]
-            got = classify_batch(batch)
+            try:
+                got = classify_batch(batch)
+            except BudgetExceeded:
+                break  # budget ran out mid-statement: the rest fall back to "Other" below
             for label, cat in got.items():
                 for idx in pending.get(label, []):
                     df.at[idx, "category"], df.at[idx, "category_source"] = cat, "llm"
@@ -187,9 +190,9 @@ def categorize(df: pd.DataFrame, *, use_llm: bool = True, cache_path: Path | Non
             disk = load_cache(cache_path)
             disk.update(cache)
             save_cache(disk, cache_path)
-    elif pending:
-        for idxs in pending.values():
-            for idx in idxs:
+    for idxs in pending.values():  # no AI, or the budget ran out
+        for idx in idxs:
+            if pd.isna(df.at[idx, "category"]):
                 df.at[idx, "category"], df.at[idx, "category_source"] = "Other", "rule"
 
     return df

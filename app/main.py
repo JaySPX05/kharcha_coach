@@ -136,7 +136,7 @@ button[data-baseweb="tab"] p {{ font-weight: 600; }}
   .kc-hero > * {{ animation: kc-rise .6s cubic-bezier(.16,1,.3,1) both; }}
   .kc-hero > :nth-child(2) {{ animation-delay: .08s; }}
   @keyframes kc-rise {{ from {{ opacity: 0; transform: translateY(14px); }} }}
-  /* the pulse travels from raw narration to decoded row: decoding happens here, on device */
+  /* the pulse travels from raw narration to decoded row: decoding happens in our code, before any AI call */
   .kc-flow::after {{ animation: kc-travel 2.2s cubic-bezier(.65,0,.35,1) infinite; }}
   @keyframes kc-travel {{ 0% {{ transform: translateY(0); opacity: 0; }} 15%, 80% {{ opacity: 1; }}
     100% {{ transform: translateY(calc(2.2rem - 8px)); opacity: 0; }} }}
@@ -157,7 +157,7 @@ def has_key() -> bool:
     except Exception:  # noqa: BLE001 — no secrets file locally is fine
         pass
     # KC_NO_AI=1 forces the no-AI path even with a key, e.g. a first run on a real statement
-    return bool(os.getenv("NEBIUS_API_KEY")) and not os.getenv("KC_NO_AI")
+    return bool(os.getenv("NEBIUS_API_KEY")) and not os.getenv("KC_NO_AI") and llm_client.budget_left() > 0
 
 
 def track_calls(fn, *a, **kw):
@@ -234,7 +234,8 @@ with st.sidebar:
 **What we read.** Only the statement you upload. No sign-up, no SMS access, no bank login, no tracking or analytics.
 
 **What we keep.** Nothing from your statement. The file is read in memory and never written to disk.
-Your transactions, chat and coach report live in this browser tab only and are gone when you close it.
+Your transactions, chat and coach report are held in the app's memory for your session only
+(other visitors can't see them) and are cleared when you close the tab.
 The one thing saved is a list of merchant names and their category (for example *Zepto: Groceries*),
 so the same shop isn't sent to the AI twice. It has no amounts, dates, account details or people.
 
@@ -249,7 +250,9 @@ logs under its own policy. Those requests contain only the masked data above.
 if you'd rather not upload a real statement.
 """)
     if not has_key():
-        st.warning("No NEBIUS_API_KEY set: running without AI. Categories come from rules only; chat and coach are off.")
+        why = ("Today's AI budget is used up" if os.getenv("NEBIUS_API_KEY") and llm_client.budget_left() <= 0
+               else "No NEBIUS_API_KEY set")
+        st.warning(f"{why}: running without AI. Categories come from rules only; chat and coach are off.")
 
 
 # ----------------------------------------------------------------- empty / error
@@ -308,7 +311,7 @@ tab_dash, tab_ask, tab_coach, tab_ai = st.tabs([
 # ================================================================= DASHBOARD
 with tab_dash:
     st.header(pd.Period(month).strftime("%B %Y"), anchor=False)
-    st.caption(f"From {st.session_state.source_name} · {len(df):,} transactions decoded on this device")
+    st.caption(f"From {st.session_state.source_name} · {len(df):,} transactions decoded, no AI involved")
     spend_cats = [c for c in ins["by_category"] if c["category"] != "Income"]
     biggest = spend_cats[0] if spend_cats else None
     earlier = [m for m in ins["monthly"] if m["month"] < month]
@@ -553,7 +556,7 @@ with tab_coach:
 # ================================================================= WHAT THE AI SAW
 with tab_ai:
     st.markdown("Everything below is exactly what was sent to a model. Raw narrations, account numbers, "
-                "phone numbers, UPI reference numbers and real names were masked on this device first.")
+                "phone numbers, UPI reference numbers and real names were masked before any AI call.")
     calls = st.session_state.calls
     nano = [c for c in calls if c.tier == "nano" and c.payload_preview]
     sup = [c for c in calls if c.tier == "super"]
@@ -578,7 +581,7 @@ with tab_ai:
     else:
         st.caption("No coach report yet.")
 
-    st.markdown("**Sample of the redacted data** (what stays on this device after masking)")
+    st.markdown("**Sample of the redacted data** (what our code works with after masking; never sent as a whole)")
     st.dataframe(df[["date", "narration", "counterparty", "vpa", "cp_type", "category"]]
                  .sample(min(8, len(df)), random_state=1), hide_index=True, width="stretch")
 

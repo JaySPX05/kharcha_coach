@@ -12,9 +12,11 @@ from __future__ import annotations
 
 import os
 import re
+import threading
 import time
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any
 
 try:
@@ -77,6 +79,30 @@ _current_log: ContextVar[list[CallLog] | None] = ContextVar("current_log", defau
 def _log(entry: CallLog) -> None:
     target = _current_log.get()
     (CALL_LOG if target is None else target).append(entry)
+    with _spend_lock:
+        today = datetime.now(timezone.utc).date()
+        if _spent["day"] != today:
+            _spent.update(day=today, usd=0.0)
+        _spent["usd"] += entry.cost_usd
+
+
+# Daily spend cap across every visitor, so a public link can't run up the Token Factory bill.
+# shortcut: kept in this process's memory, so it resets if the server restarts; fine for one
+# Streamlit Cloud instance, move to a shared store if the app ever runs on several.
+_spent: dict = {"day": None, "usd": 0.0}
+_spend_lock = threading.Lock()
+
+
+class BudgetExceeded(RuntimeError):
+    """Today's AI budget (LLM_DAILY_BUDGET_USD) is used up."""
+
+
+def budget_left() -> float:
+    """USD left in today's budget (UTC day). LLM_DAILY_BUDGET_USD, default 1.0."""
+    limit = float(os.getenv("LLM_DAILY_BUDGET_USD", "1.0"))
+    with _spend_lock:
+        used = _spent["usd"] if _spent["day"] == datetime.now(timezone.utc).date() else 0.0
+    return limit - used
 
 
 def collect_calls(fn, *args, **kwargs) -> tuple[Any, list[CallLog]]:
@@ -177,6 +203,8 @@ def chat(
     """
     if tier not in MODELS:
         raise ValueError(f"tier must be one of {list(MODELS)}, got {tier!r}")
+    if budget_left() <= 0:  # soft cap: a call that starts under budget may finish a little over
+        raise BudgetExceeded("Today's AI budget is used up. The AI is back at midnight UTC.")
     model = MODELS[tier]
     think = THINKING[tier] if thinking is None else thinking
 

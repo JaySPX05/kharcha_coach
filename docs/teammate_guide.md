@@ -10,7 +10,7 @@ cd C:\Users\Keerthana\kharcha_coach
 pip install -r requirements.txt
 Copy-Item .env.example .env
 notepad .env                          # paste your key after NEBIUS_API_KEY=
-pytest -q                             # expect: 174 passed (no key needed)
+pytest -q                             # expect: 176 passed (no key needed)
 ```
 
 ## 1. Talk to Token Factory — `llm/client.py`

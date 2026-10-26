@@ -7,7 +7,7 @@ category totals depend on the Nano categoriser, so only merchant figures are pre
 | Time | Voice-over | On screen |
 |---|---|---|
 | 0:00–0:15 | "This is what a UPI payment looks like on an Indian bank statement. A student makes two hundred of these a month. Nobody reads them — and nobody should paste them into a chatbot." | Zoom on a raw PDF page full of `UPI/DR/…/YESB/swiggy@ybl/…` lines |
-| 0:15–0:30 | "Kharcha Coach reads the statement — even a password-protected PDF — and decodes every narration on your laptop." | Upload `statement.pdf` (or click **Try sample**); spinner; rows appear |
+| 0:15–0:30 | "Kharcha Coach reads the statement — even a password-protected PDF — and decodes every narration in plain code, before any AI sees it." | Upload `statement.pdf` (or click **Try sample**); spinner; rows appear |
 | 0:30–0:45 | "Swiggy, Rapido, the canteen, a friend — each narration becomes a merchant or a person. People become aliases like Person 3, and phone numbers and reference numbers are masked before any model sees them." | Table: raw narration column beside decoded counterparty / cp_type / masked VPA |
 | 0:45–1:10 | "The dashboard. In September this student earned ₹33,460 and spent ₹40,478 — a savings rate of minus 21 percent. Spending rose every month, up ₹5,774 from August." | Dashboard: number cards with sparklines, "Where every ₹100 went" bar, in/out bars Jul→Sep |
 | 1:10–1:25 | "It finds patterns you'd miss: four recurring payments — rent, Jio, Netflix, Spotify — and 152 payments under ₹200 that add up to ₹9,495." | Recurring list; small-ticket leakage card |

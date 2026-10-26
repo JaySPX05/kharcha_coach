@@ -27,6 +27,7 @@ def fake(monkeypatch, tmp_path):
     client.set_client(f)
     client.reset_log()
     monkeypatch.setattr("llm.categorize.CACHE_PATH", tmp_path / "cache.json")
+    monkeypatch.setattr("llm.client._spent", {"day": None, "usd": 0.0})
     yield f
     client.set_client(None)
 
@@ -71,6 +72,24 @@ def test_collect_calls_keeps_concurrent_visitors_apart(fake):
     tb.join(5)
     assert [c.tier for c in got["a"]] == ["nano"] and [c.tier for c in got["b"]] == ["ultra"]
     assert client.CALL_LOG == []  # the app's calls never pile up in the process-wide log
+
+
+def test_daily_budget_stops_calls(fake, monkeypatch):
+    monkeypatch.setenv("LLM_DAILY_BUDGET_USD", "0.00001")
+    client.chat("nano", [{"role": "user", "content": "a"}])  # starts under budget, so it runs
+    assert client.budget_left() < 0
+    with pytest.raises(client.BudgetExceeded):
+        client.chat("nano", [{"role": "user", "content": "b"}])
+    assert len(fake.requests) == 1  # the second call never reached the API
+
+
+def test_budget_running_out_mid_statement_falls_back_to_rules(fake, monkeypatch):
+    monkeypatch.setattr("llm.categorize.BATCH_SIZE", 1)
+    monkeypatch.setenv("LLM_DAILY_BUDGET_USD", "0.00001")  # enough for the first batch only
+    df = pd.DataFrame({"counterparty": ["Weird Place", "Odd Shop"], "vpa": None, "cp_type": "merchant",
+                       "direction": "debit", "channel": "UPI"})
+    out = categorize(df)
+    assert out["category"].notna().all() and out["category_source"].tolist() == ["llm", "rule"]
 
 
 def test_retry_on_429(fake, monkeypatch):
