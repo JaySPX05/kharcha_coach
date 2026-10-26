@@ -51,6 +51,13 @@ def test_same_person_same_alias_across_channels():
     assert out["narration"][1] == "IMPS/P2A/XXXXXXXX8901/Person_01/trip"
 
 
+def test_names_in_non_upi_lines_are_masked():
+    df = decode_upi(pd.DataFrame({"narration": ["CHQ DEP-RAHUL SHARMA-001234", "TO TRANSFER-INB PRIYA NAIR"]}))
+    out = redact(df)
+    assert out["counterparty"].tolist() == ["Person_01", "Person_02"]
+    assert "RAHUL" not in out["narration"][0].upper() and "PRIYA" not in out["narration"][1].upper()
+
+
 def test_input_not_modified():
     df = decode_upi(pd.DataFrame({"narration": ["UPI/CR/412345678903/PRIYA SHARMA/HDFC/9000023456@ybl/x"]}))
     before = df.copy()

@@ -10,7 +10,7 @@ from app.pipeline import run_pipeline
 from core.insights import compute_insights
 from core.schema import validate
 from llm import client
-from llm.categorize import categorize, load_cache, set_user_category
+from llm.categorize import categorize, load_cache
 from llm.categories import normalise_merchant, rule_category
 from llm.chat import answer
 from llm.coach import coach_report
@@ -147,13 +147,13 @@ def test_invalid_category_retries_then_other(fake):
     assert out["category"].iloc[0] == "Other" and len(fake.requests) == 2
 
 
-def test_user_override_wins(fake):
-    set_user_category("Weird Place", "Health")
-    df = pd.DataFrame({"counterparty": ["Weird Place"], "vpa": None, "cp_type": "merchant",
-                       "direction": "debit", "channel": "UPI"})
+def test_aliases_never_reach_nano_or_cache(fake):
+    # cp_type "unknown" but aliased by redact(): Person_01 means someone else in the next statement
+    df = pd.DataFrame({"counterparty": ["Person_01"], "vpa": "person_01@oksbi", "cp_type": "unknown",
+                       "direction": "debit", "channel": "UPI", "narration": "UPI/DR/XXXXXXXX8901/Person_01/x"})
     out = categorize(df)
-    assert (out["category"].iloc[0], out["category_source"].iloc[0]) == ("Health", "user")
-    assert fake.requests == []
+    assert out["category"].iloc[0] == "Transfers to people"
+    assert fake.requests == [] and load_cache() == {}
 
 
 def test_pipeline_output_passes_schema(pipeline):
@@ -182,6 +182,24 @@ def test_chat_uses_tool_and_quotes_its_number(pipeline):
     assert r["tool_calls"][0]["name"] == "spend_by"
     assert f"{expected['total']:,.0f}" in r["text"]
     assert r["txn_count"] == expected["count"] and r["unverified"] == []
+
+
+def test_chat_survives_broken_tool_arguments(pipeline, fake, monkeypatch):
+    """A half-written tool call must go back to the model as an error, and each call keeps its own result."""
+    real = fake.chat.completions.create
+    good = SimpleNamespace(id="good", function=SimpleNamespace(name="spend_by", arguments='{"merchant": "swiggy"}'))
+    bad = SimpleNamespace(id="bad", function=SimpleNamespace(name="spend_by", arguments='{"month": "2026-09"'))
+
+    def create(**kw):
+        if not any(m.get("role") == "tool" for m in kw["messages"]):
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=None, tool_calls=[bad, good]))],
+                                   usage=None)
+        return real(**kw)
+
+    monkeypatch.setattr(fake.chat.completions, "create", create)
+    r = answer("How much on Swiggy?", pipeline.df, [])
+    assert "error" in r["tool_calls"][0]["result"]
+    assert r["tool_calls"][1]["result"]["total"] == run_tool("spend_by", {"merchant": "swiggy"}, pipeline.df)["result"]["total"]
 
 
 def test_chat_flags_invented_number(pipeline, fake):

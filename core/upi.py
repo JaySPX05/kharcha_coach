@@ -120,6 +120,6 @@ def decode_upi(df: pd.DataFrame) -> pd.DataFrame:
     # one display name per VPA: PDF wraps can glue words, so prefer the variant with the most spaces
     names = decoded.dropna(subset=["vpa"]).groupby("vpa")["counterparty"]
     best = names.agg(lambda s: max(s, key=lambda n: (n.count(" "), len(n))))
-    decoded["counterparty"] = decoded["vpa"].map(best).fillna(decoded["counterparty"])
+    decoded["counterparty"] = decoded["vpa"].map(best).astype(object).fillna(decoded["counterparty"])
     out[decoded.columns] = decoded.astype(object)
     return out

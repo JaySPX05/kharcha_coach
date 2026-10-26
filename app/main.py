@@ -489,8 +489,8 @@ with tab_ask:
             with st.spinner("Nemotron Super is working it out…"):
                 try:
                     r = track_calls(answer, q, df, history)
-                    meta = {**r, "tool_calls_full": [{"tool": c["name"], "arguments": c["arguments"], "result": res}
-                                                     for c, res in zip(r["tool_calls"], r["numbers_used"])]}
+                    meta = {**r, "tool_calls_full": [{"tool": c["name"], "arguments": c["arguments"], "result": c["result"]}
+                                                     for c in r["tool_calls"]]}
                     st.session_state.chat.append({"role": "assistant", "content": r["text"] or "_(no answer)_",
                                                   "meta": meta})
                 except Exception as e:  # noqa: BLE001

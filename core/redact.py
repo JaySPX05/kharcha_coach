@@ -5,7 +5,7 @@ import re
 import pandas as pd
 
 LONG_DIGITS = re.compile(r"\d{10,}")  # phones (10), UPI refs (12), account numbers (11-18)
-ALIASED_CHANNELS = ("UPI", "NEFT", "IMPS")
+ALIASED_CHANNELS = ("UPI", "NEFT", "IMPS", "OTHER")  # OTHER keeps raw text ("CHQ DEP-RAHUL SHARMA")
 
 
 def _mask_digits(text: object) -> object:
@@ -18,7 +18,7 @@ def _mask_digits(text: object) -> object:
 def redact(df: pd.DataFrame) -> pd.DataFrame:
     """People -> stable Person_NN aliases (first appearance order); long digit runs -> last 4.
 
-    Merchant names and VPAs stay readable. Unknown counterparties on UPI/NEFT/IMPS are
+    Merchant names and VPAs stay readable. Unknown counterparties on UPI/NEFT/IMPS/OTHER are
     aliased too, since they might be people.
     """
     out = df.copy()

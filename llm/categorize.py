@@ -6,10 +6,10 @@ each merchant once, broadcast the answer to every row, and remember it in a
 cache so the next statement (or re-upload) costs nothing for known merchants.
 
 Order of precedence for each row:
-  1. user override in cache   -> category_source = "user"
-  2. deterministic rules      -> "rule"   (people, credits, ATM, keyword map)
-  3. cache from earlier runs  -> "cache"
-  4. Nano, batches of 40      -> "llm"
+  1. deterministic rules      -> category_source = "rule"   (people, credits, ATM, keyword map)
+  2. cache from earlier runs  -> "cache"
+  3. Nano, batches of 40      -> "llm"
+User fixes in the dashboard apply to that session only and never touch the cache.
 """
 from __future__ import annotations
 
@@ -49,16 +49,6 @@ def save_cache(cache: dict, path: Path | None = None) -> None:
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(cache, indent=1, ensure_ascii=False, sort_keys=True), encoding="utf-8")
     tmp.replace(path)
-
-
-def set_user_category(merchant: str, category: str, path: Path | None = None) -> None:
-    """Called by the dashboard when the user fixes a category."""
-    if category not in CATEGORIES:
-        raise ValueError(f"{category!r} is not an allowed category")
-    with _lock:
-        cache = load_cache(path)
-        cache[normalise_merchant(merchant)] = {"category": category, "source": "user"}
-        save_cache(cache, path)
 
 
 # ---------------------------------------------------------------- model call
@@ -156,20 +146,16 @@ def categorize(df: pd.DataFrame, *, use_llm: bool = True, cache_path: Path | Non
     pending: dict[str, list] = {}  # label -> row indexes waiting for the model
 
     for idx, row in df.iterrows():
-        if row.get("category_source") == "user" and row.get("category") in CATEGORIES:
-            continue
         key = normalise_merchant(_s(row.get("counterparty")) or _s(row.get("vpa")))
         hit = cache.get(key)
-        if hit and hit.get("source") == "user":
-            df.at[idx, "category"], df.at[idx, "category_source"] = hit["category"], "user"
-            continue
 
         cat = None
         if row.get("direction") == "credit":
             cat = "Income"
         elif row.get("channel") == "ATM":
             cat = "Cash withdrawal"
-        elif row.get("cp_type") == "person":
+        elif row.get("cp_type") == "person" or _s(row.get("counterparty")).startswith("Person_"):
+            # aliases tell Nano nothing and differ per statement, so they never reach it or the cache
             cat = _person_category(row.get("narration"))
         else:
             cat = rule_category(row.get("counterparty"), row.get("vpa"))
@@ -196,7 +182,7 @@ def categorize(df: pd.DataFrame, *, use_llm: bool = True, cache_path: Path | Non
                 cache[key] = {"category": cat, "source": "llm"}
         with _lock:
             disk = load_cache(cache_path)
-            disk.update({k: v for k, v in cache.items() if disk.get(k, {}).get("source") != "user"})
+            disk.update(cache)
             save_cache(disk, cache_path)
     elif pending:
         for idxs in pending.values():

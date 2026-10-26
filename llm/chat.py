@@ -67,11 +67,23 @@ def _calls_from_text(content: str) -> list[dict]:
     return calls
 
 
+def _args(raw):
+    """Tool arguments as a dict for the trace; broken JSON stays a string (run_tool already told the model)."""
+    if not isinstance(raw, str):
+        return raw
+    try:
+        return json.loads(raw or "{}")
+    except json.JSONDecodeError:
+        return raw
+
+
 def _result(text: str, trace: list[dict], mode: str, question: str = "") -> dict:
     results = [t["result"] for t in trace if "result" in t]
     return {
         "text": text.strip(),
-        "tool_calls": [{"name": t["name"], "arguments": t["arguments"]} for t in trace],
+        # each call carries its own result (or error), so the UI never pairs a call with the wrong one
+        "tool_calls": [{"name": t["name"], "arguments": t["arguments"],
+                        "result": t["result"] if "result" in t else {"error": t.get("error")}} for t in trace],
         "numbers_used": results,
         "txn_count": sum(txn_count(t["name"], t.get("result")) for t in trace),
         # the user's own numbers ("save 3000") count as a source too
@@ -109,8 +121,7 @@ def answer(question: str, df: pd.DataFrame, history: list | None = None) -> dict
                                         for c in calls]})
         for c in calls:
             out = run_tool(c["name"], c["arguments"], df)
-            trace.append({"name": c["name"], "arguments": json.loads(c["arguments"] or "{}")
-                          if isinstance(c["arguments"], str) else c["arguments"], **out})
+            trace.append({"name": c["name"], "arguments": _args(c["arguments"]), **out})
             messages.append({"role": "tool", "tool_call_id": c["id"],
                              "content": json.dumps(out, ensure_ascii=False)})
 
