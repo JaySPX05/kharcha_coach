@@ -146,7 +146,8 @@ button[data-baseweb="tab"] p {{ font-weight: 600; }}
 
 # ----------------------------------------------------------------- helpers
 def rs(x: float | None) -> str:
-    return "n/a" if x is None else f"₹{format_inr(x)}"
+    # sign before the ₹: Streamlit reads a leading "-" to pick the delta arrow
+    return "n/a" if x is None else f"{'-' if x < 0 else ''}₹{format_inr(abs(x))}"
 
 
 def has_key() -> bool:
@@ -155,7 +156,8 @@ def has_key() -> bool:
             os.environ.setdefault("NEBIUS_API_KEY", st.secrets["NEBIUS_API_KEY"])
     except Exception:  # noqa: BLE001 — no secrets file locally is fine
         pass
-    return bool(os.getenv("NEBIUS_API_KEY"))
+    # KC_NO_AI=1 forces the no-AI path even with a key, e.g. a first run on a real statement
+    return bool(os.getenv("NEBIUS_API_KEY")) and not os.getenv("KC_NO_AI")
 
 
 def track_calls(fn, *a, **kw):
@@ -290,8 +292,11 @@ if st.session_state.df is None:
 
 # ----------------------------------------------------------------- data ready
 df: pd.DataFrame = st.session_state.df
-months = sorted(pd.to_datetime(df["date"]).dt.strftime("%Y-%m").unique())
-month = st.sidebar.selectbox("Month", months[::-1], index=0,
+txn_months = pd.to_datetime(df["date"]).dt.strftime("%Y-%m")
+months = sorted(txn_months.unique())
+# open on the busiest month: a statement often ends with a stray line (interest on the 1st) in the next month
+busiest = txn_months.value_counts().idxmax()
+month = st.sidebar.selectbox("Month", months[::-1], index=months[::-1].index(busiest),
                              format_func=lambda m: pd.Period(m).strftime("%B %Y"))
 ins = compute_insights(df, month)
 summary = ins["summary"]
@@ -309,16 +314,17 @@ with tab_dash:
     earlier = [m for m in ins["monthly"] if m["month"] < month]
     prev = earlier[-1] if earlier else None
     trend = [m for m in ins["monthly"] if m["month"] <= month]  # sparklines: every month up to this one
+    spark = len(trend) > 1  # one point draws a flat line that reads as "no change"
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Spent", rs(summary["spend"]), border=True, height="stretch",
               delta=rs(summary["spend"] - prev["spend"]) if prev else None, delta_color="inverse",
-              chart_data=[m["spend"] for m in trend], chart_type="area")
+              chart_data=[m["spend"] for m in trend] if spark else None, chart_type="area")
     k2.metric("Received", rs(summary["income"]), border=True, height="stretch",
-              chart_data=[m["income"] for m in trend], chart_type="line")
+              chart_data=[m["income"] for m in trend] if spark else None, chart_type="line")
     sr = summary["savings_rate"]
     k3.metric("Savings rate", "n/a" if sr is None else f"{sr:.0f}%", border=True, height="stretch",
               help="(received − spent) ÷ received. Negative means you spent more than came in.",
-              chart_data=[m["savings_rate"] or 0 for m in trend], chart_type="line")
+              chart_data=[m["savings_rate"] or 0 for m in trend] if spark else None, chart_type="line")
     # a description, not a metric delta: an arrow would read as "went up"
     k4.metric("Biggest category", biggest["category"] if biggest else "n/a", border=True, height="stretch",
               delta_description=f"{rs(biggest['total'])} · {biggest['share_pct']:.0f}% of spend" if biggest else None)

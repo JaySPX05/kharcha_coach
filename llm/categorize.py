@@ -154,9 +154,12 @@ def categorize(df: pd.DataFrame, *, use_llm: bool = True, cache_path: Path | Non
             cat = "Income"
         elif row.get("channel") == "ATM":
             cat = "Cash withdrawal"
-        elif row.get("cp_type") == "person" or _s(row.get("counterparty")).startswith("Person_"):
-            # aliases tell Nano nothing and differ per statement, so they never reach it or the cache
+        elif row.get("cp_type") == "person":
             cat = _person_category(row.get("narration"))
+        elif _s(row.get("counterparty")).startswith("Person_"):
+            # an aliased unknown payee: maybe a shop, maybe a person. The alias tells Nano nothing and
+            # means someone else in the next statement, so it never reaches Nano or the cache.
+            cat = "Other"
         else:
             cat = rule_category(row.get("counterparty"), row.get("vpa"))
         if cat:

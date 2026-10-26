@@ -23,6 +23,10 @@ CASES = [
     ("NEFT CR-CNRB0001234-SURESH RAO-CNRBN612345678901", "NEFT", "Suresh Rao", None, "person"),
     ("IMPS-612345678901-MEERA JOSHI-KKBK0008899-TRIP", "IMPS", "Meera Joshi", None, "person"),
     ("NWD-123456-SBIN0BLR-KORAMANGALA BLR", "ATM", "ATM", None, "unknown"),
+    # HDFC shapes seen on a real statement: Paytm shop QR with an owner's name, autopay mandates, Razorpay
+    ("UPI-RAMESH KUMAR-paytm.s1abc2d@pty-YESB0PTMUPI-412345678901-UPI", "UPI", "Ramesh Kumar", "paytm.s1abc2d@pty", "merchant"),
+    ("UPI-AUTOPAY-SKILLSHARE IN-skillshare@icici-ICIC0000001-412345678901-MANDATE", "UPI", "Autopay-Skillshare In", "skillshare@icici", "merchant"),
+    ("UPI-ANAND BOOK HOUSE-anandbook.rzp@axisbank-UTIB0000100-412345678901-UPI", "UPI", "Anand Book House", "anandbook.rzp@axisbank", "merchant"),
     # other shapes the decoder must not choke on
     ("UPI-SHARMA GENERAL STORE-9000099999@ybl-SBIN0000001-412345678901-PAY", "UPI", "Sharma General Store", "9000099999@ybl", "merchant"),
     ("UPI-MARTIN DSOUZA-martin.d@okicici-ICIC0000001-412345678901-PAY", "UPI", "Martin Dsouza", "martin.d@okicici", "person"),

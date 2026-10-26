@@ -52,9 +52,10 @@ MERCHANT_WORDS = frozenset("""
     LIMITED PRIVATE MEDICAL MEDICALS PHARMACY CHEMIST CLINIC HOSPITAL SERVICES STATION PETROL FUELS FUEL
     MOTORS INDIA TECHNOLOGIES SOLUTIONS CENTRE CENTER SALON HOSTEL MESS JUICE XEROX STATIONERY BOOKS
     ELECTRONICS MOBILES TEXTILES FASHION MARKET MARKETPLACE PAYMENTS RETAIL COLLEGE UNIVERSITY SCHOOL
+    AUTOPAY MANDATE
 """.split())
 PHONE_HANDLE = re.compile(r"^(?:\+?91)?[6-9]\d{9}$")  # Indian mobile, optional 91 prefix
-MERCHANT_HANDLE = re.compile(r"^(paytmqr|q\d{6,}|bharatpe|gpay-|razorpay|cf\.)|merchant|\.payu", re.I)
+MERCHANT_HANDLE = re.compile(r"^(paytmqr|paytm\.|q\d{6,}|bharatpe|gpay-|razorpay|cf\.)|merchant|\.payu|\.rzp$", re.I)
 NAME_HANDLE = re.compile(r"^[a-z][a-z0-9._]*$", re.I)
 
 

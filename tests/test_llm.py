@@ -152,7 +152,7 @@ def test_aliases_never_reach_nano_or_cache(fake):
     df = pd.DataFrame({"counterparty": ["Person_01"], "vpa": "person_01@oksbi", "cp_type": "unknown",
                        "direction": "debit", "channel": "UPI", "narration": "UPI/DR/XXXXXXXX8901/Person_01/x"})
     out = categorize(df)
-    assert out["category"].iloc[0] == "Transfers to people"
+    assert out["category"].iloc[0] == "Other"  # not "Transfers to people": unknown may be a shop
     assert fake.requests == [] and load_cache() == {}
 
 

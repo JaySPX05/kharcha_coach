@@ -186,10 +186,11 @@ def inr(x: float) -> str:
     return ",".join(([head] if head else []) + groups + [tail]) + "." + frac
 
 
-def write_pdf(df: pd.DataFrame, path: Path, date_fmt: str, ruled: bool = True) -> None:
+def write_pdf(df: pd.DataFrame, path: Path, date_fmt: str, ruled: bool = True, column_boxes: bool = False) -> None:
     """Bank-like PDF: header block, opening/closing balance rows, wrapped narrations, footer.
 
     ruled=False draws no table lines, like many real bank PDFs (used by parser tests).
+    column_boxes=True (with ruled=False) boxes each column but not the rows, like HDFC.
     """
     pdf = FPDF(format="A4")
     pdf.set_creation_date(datetime(2026, 10, 1, tzinfo=timezone.utc))  # fixed so output is byte-stable
@@ -218,13 +219,25 @@ def write_pdf(df: pd.DataFrame, path: Path, date_fmt: str, ruled: bool = True) -
     with pdf.table(col_widths=(20, 90, 24, 24, 28),
                    text_align=("LEFT", "LEFT", "RIGHT", "RIGHT", "RIGHT"), v_align="TOP",
                    borders_layout="ALL" if ruled else "NONE") as table:
-        table.row(("Date", "Narration", "Debit", "Credit", "Balance"))
+        header = table.row()
+        for i, h in enumerate(("Date", "Narration", "Debit", "Credit", "Balance")):
+            # HDFC centres its headers, so "Narration" starts right of where the narrations do
+            header.cell(h, align="C" if column_boxes else None)
         table.row((fmt(df["date"].iloc[0]), "OPENING BALANCE", "", "", inr(OPENING_BALANCE)))
         for r in df.itertuples():
             debit = inr(r.amount) if r.direction == "debit" else ""
             credit = inr(r.amount) if r.direction == "credit" else ""
             table.row((fmt(r.date), r.narration, debit, credit, inr(r.balance)))
         table.row((fmt(df["date"].iloc[-1]), "CLOSING BALANCE", "", "", inr(df["balance"].iloc[-1])))
+    if column_boxes:
+        widths = [w * pdf.epw / 186 for w in (20, 90, 24, 24, 28)]  # same scaling fpdf applies to col_widths
+        for p in range(1, pdf.pages_count + 1):
+            pdf.page = p
+            top = 40 if p == 1 else pdf.t_margin
+            x = pdf.l_margin
+            for w in widths:
+                pdf.rect(x, top, w, pdf.h - 15 - top)
+                x += w
     pdf.output(str(path))
 
 

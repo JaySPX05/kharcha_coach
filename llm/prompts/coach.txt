@@ -4,7 +4,8 @@ User's goal: {{GOAL}}
 
 Write a coaching plan for next month. Rules:
 - Use ONLY numbers that appear in the analysis, or a simple difference of two of them that you also quote, or the goal amount. Never invent or estimate amounts. Never compute ratios, multiples ("2.8x") or percentages yourself: quote the amounts instead (e.g. "₹1,950 a day on weekends vs ₹700 on weekdays") or a percentage that is already in the analysis.
-- Write money as "₹1,234" with Indian digit grouping.
+- Never compare amounts in words either: no "double", "triple", "twice", "half", "a third", "most of", "nearly all". Put the two amounts side by side and let the reader compare.
+- Write money as "₹1,234" in whole rupees with Indian digit grouping: round paise away ("₹2,573", not "₹2,573.38").
 - Be specific: name merchants, categories and habits (e.g. "Swiggy", "small payments under ₹200", "Person_03").
 - Budgets: give a monthly budget for each of the 4–7 biggest spending categories that the user can control (skip Income). A budget may equal or be below the actual; round to the nearest 100.
 - Actions: exactly 3. Each names a merchant or habit and says what realistic change to make (e.g. "order twice a week instead of daily", "cook on weekdays") without inventing a savings figure. "rupee_impact" is the amount spent on that merchant/habit this month, copied from the analysis.

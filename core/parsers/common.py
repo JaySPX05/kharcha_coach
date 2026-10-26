@@ -61,6 +61,14 @@ def parse_amount(text: object) -> float | None:
         return None
 
 
+def _header_match(name: str, key: str) -> bool:
+    """'withdrawal amt.' or glued 'withdrawalamt.' (some PDFs drop the space) both match 'withdrawal'."""
+    if name == key or re.match(rf"{re.escape(key)}[ .(]", name):
+        return True
+    glued, k = name.replace(" ", ""), key.replace(" ", "")
+    return glued == k or bool(re.fullmatch(rf"{re.escape(k)}(?:[.(].*|amt\.?|amount.*)", glued))
+
+
 def map_columns(header: list) -> dict[str, int] | None:
     """Find which column holds which field; None if this row isn't a statement header."""
     names = [" ".join(str(h or "").lower().split()) for h in header]
@@ -69,7 +77,7 @@ def map_columns(header: list) -> dict[str, int] | None:
         for i, name in enumerate(names):
             if i in cols.values():
                 continue
-            if any(name == k or re.match(rf"{re.escape(k)}[ .(]", name) for k in keys) or (
+            if any(_header_match(name, k) for k in keys) or (
                 field == "balance" and "balance" in name
             ):
                 cols[field] = i

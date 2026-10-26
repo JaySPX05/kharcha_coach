@@ -5,11 +5,14 @@ import pandas as pd
 import pdfplumber
 import pikepdf
 
-from core.parsers.common import StatementError, add_rows, map_columns, to_frame
+from core.parsers.common import StatementError, add_rows, map_columns, parse_date, to_frame
 
 NUMERIC_FIELDS = {"debit", "credit", "amount", "balance"}
 AMOUNT_WORD = re.compile(r"^\(?-?[\d,]+\.\d{2}\)?(Cr|Dr)?$", re.I)
 HEADER_WORD_GAP = 8  # pt; words closer than this form one header ("Withdrawal Amt.")
+# Lines box each column but not the rows (HDFC): columns from the boxes, rows from text lines.
+# The boxes are the true column borders; headers can sit off-centre from their column's text.
+COLUMN_BOXES = {"vertical_strategy": "lines", "horizontal_strategy": "text"}
 
 
 def _column_edges(page) -> list[float] | None:
@@ -49,6 +52,13 @@ def _column_edges(page) -> list[float] | None:
     return None
 
 
+def _collapsed(tables: list) -> bool:
+    """True if a 'ruled' table packed many transactions into one cell: the lines only box the
+    columns (HDFC style), so rows must come from text lines instead."""
+    return any(sum(parse_date(line) is not None for line in str(cell or "").splitlines()) >= 2
+               for table in tables for row in table for cell in row)
+
+
 def _decrypt(data: bytes, password: str | None) -> bytes:
     """Return unencrypted PDF bytes; friendly errors for missing/wrong password or broken files."""
     try:
@@ -77,7 +87,10 @@ def parse_pdf(data: bytes, password: str | None = None) -> pd.DataFrame:
         for page in pdf.pages:
             has_text = has_text or bool(page.chars)
             settings = None  # ruled table: split cells along its drawn lines
-            if not (page.lines or page.rects):  # unruled (common in real banks): invisible lines
+            if page.lines or page.rects:
+                if _collapsed(page.extract_tables()):
+                    settings = COLUMN_BOXES
+            else:  # unruled (common in real banks): invisible lines from the header positions
                 edges = _column_edges(page) or edges  # pages without a header reuse the last layout
                 if not edges:
                     continue

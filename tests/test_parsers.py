@@ -129,6 +129,22 @@ def test_unruled_pdf_round_trips(tmp_path, stem, date_fmt):
     assert parsed["balance"].tolist() == truth["balance"].tolist()
 
 
+def test_column_boxes_pdf_round_trips(tmp_path):
+    """HDFC draws one box per column and no row lines: a plain table read puts a whole page in one row."""
+    truth = pd.read_csv(SAMPLE / "statement_b.csv").head(60)
+    path = tmp_path / "boxes.pdf"
+    write_pdf(truth, path, "%d/%m/%y", ruled=False, column_boxes=True)
+    parsed = parse_statement(path.read_bytes(), "boxes.pdf")
+    assert parsed["txn_id"].tolist() == truth["txn_id"].tolist()
+
+
+def test_glued_header_words():
+    """Some PDFs lose the space inside a header: 'WithdrawalAmt.', 'ClosingBalance'."""
+    from core.parsers.common import map_columns
+    header = ["Date", "Narration", "Chq./Ref.No.", "ValueDt", "WithdrawalAmt.", "DepositAmt.", "ClosingBalance"]
+    assert map_columns(header) == {"date": 0, "narration": 1, "debit": 4, "credit": 5, "balance": 6}
+
+
 def test_misread_rows_are_refused_not_returned():
     good = ["Date,Narration,Debit,Credit,Balance", "01/09/26,A,,1000,1000"]
     good += [f"{d:02d}/09/26,UPI/DR/{d}/X/YESB/x@ybl/P,10,,{1000 - 10 * (d - 1)}" for d in range(2, 12)]
