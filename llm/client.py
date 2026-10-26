@@ -13,7 +13,8 @@ from __future__ import annotations
 import os
 import re
 import time
-from dataclasses import dataclass, field, asdict
+from contextvars import ContextVar
+from dataclasses import dataclass, field
 from typing import Any
 
 try:
@@ -66,9 +67,30 @@ class CallLog:
     payload_preview: Any = field(default=None, repr=False)
 
 
-# In-memory log of every call this process made. The app reads it for the
-# "cost per statement" footer and the "What the AI saw" panel.
+# Log of model calls. Scripts and tests use the process-wide CALL_LOG. The app gives each
+# visitor's request its own list via `collect_calls()`, so concurrent visitors (threads in one
+# Streamlit process) never see each other's calls and nothing grows for the life of the server.
 CALL_LOG: list[CallLog] = []
+_current_log: ContextVar[list[CallLog] | None] = ContextVar("current_log", default=None)
+
+
+def _log(entry: CallLog) -> None:
+    target = _current_log.get()
+    (CALL_LOG if target is None else target).append(entry)
+
+
+def collect_calls(fn, *args, **kwargs) -> tuple[Any, list[CallLog]]:
+    """Run fn and return (its result, the model calls it made). On failure the calls made
+    so far are attached to the exception as `.calls`."""
+    calls: list[CallLog] = []
+    token = _current_log.set(calls)
+    try:
+        return fn(*args, **kwargs), calls
+    except Exception as e:
+        e.calls = calls
+        raise
+    finally:
+        _current_log.reset(token)
 
 
 def reset_log() -> None:
@@ -177,7 +199,7 @@ def chat(
             ct = getattr(usage, "completion_tokens", 0) or 0
             log = CallLog(tier, model, purpose, round(latency, 3), pt, ct, cost_usd(tier, pt, ct),
                           payload_preview=payload_preview)
-            CALL_LOG.append(log)
+            _log(log)
             print(f"[llm] tier={tier} purpose={purpose} latency={latency:.2f}s "
                   f"tokens={pt}+{ct} cost=${log.cost_usd:.5f}")
             msg = resp.choices[0].message
@@ -189,7 +211,7 @@ def chat(
             name = type(e).__name__
             retryable = status in RETRYABLE_STATUS or name in {"APITimeoutError", "APIConnectionError"}
             if not retryable or attempt == MAX_RETRIES:
-                CALL_LOG.append(CallLog(tier, model, purpose, round(time.perf_counter() - t0, 3),
+                _log(CallLog(tier, model, purpose, round(time.perf_counter() - t0, 3),
                                         0, 0, 0.0, ok=False, error=f"{name}: {e}",
                                         payload_preview=payload_preview))
                 raise
@@ -198,6 +220,3 @@ def chat(
             time.sleep(wait)
     raise last_err  # pragma: no cover
 
-
-def log_as_dicts() -> list[dict]:
-    return [asdict(c) for c in CALL_LOG]

@@ -1,17 +1,20 @@
 """Tests for llm/ using a fake client — no API key, no network."""
+import threading
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
 
 from app.pipeline import run_pipeline
+from core.insights import compute_insights
 from core.schema import validate
 from llm import client
 from llm.categorize import categorize, load_cache, set_user_category
 from llm.categories import normalise_merchant, rule_category
 from llm.chat import answer
 from llm.coach import coach_report
-from llm.tools import run_tool
+from llm.tools import run_tool, txn_count
 from llm.verify import format_inr, unverified_numbers
 from tests.fake_llm import FakeClient
 
@@ -30,7 +33,8 @@ def fake(monkeypatch, tmp_path):
 
 @pytest.fixture
 def pipeline(fake, tmp_path):
-    return run_pipeline(SAMPLE.read_bytes(), "statement.csv")
+    df = run_pipeline(SAMPLE.read_bytes(), "statement.csv")
+    return SimpleNamespace(df=df, insights=compute_insights(df))
 
 
 # ---------- client
@@ -45,6 +49,28 @@ def test_chat_logs_usage_and_sets_thinking(fake):
     assert fake.requests[-1]["extra_body"]["chat_template_kwargs"]["enable_thinking"] is False
     client.chat("ultra", [{"role": "user", "content": "hi"}])
     assert fake.requests[-1]["extra_body"]["chat_template_kwargs"]["enable_thinking"] is True
+
+
+def test_collect_calls_keeps_concurrent_visitors_apart(fake):
+    """Two visitors' requests overlapping in time (Streamlit threads) must not see each other's calls."""
+    a_called, b_done, got = threading.Event(), threading.Event(), {}
+
+    def visitor_a():
+        client.chat("nano", [{"role": "user", "content": "a"}])
+        a_called.set()
+        b_done.wait(5)  # visitor B's call lands while A's request is still running
+
+    def visitor_b():
+        a_called.wait(5)
+        got["b"] = client.collect_calls(client.chat, "ultra", [{"role": "user", "content": "b"}])[1]
+        b_done.set()
+
+    tb = threading.Thread(target=visitor_b)
+    tb.start()
+    got["a"] = client.collect_calls(visitor_a)[1]
+    tb.join(5)
+    assert [c.tier for c in got["a"]] == ["nano"] and [c.tier for c in got["b"]] == ["ultra"]
+    assert client.CALL_LOG == []  # the app's calls never pile up in the process-wide log
 
 
 def test_retry_on_429(fake, monkeypatch):
@@ -214,6 +240,12 @@ def test_sum_transactions_matches_small_ticket_insight(pipeline):
 def test_recurring_tool_includes_all_subscriptions(pipeline):
     names = {r["counterparty"] for r in run_tool("recurring_payments", {}, pipeline.df)["result"]}
     assert {"Netflix", "Spotify", "Jio Recharge"} <= names
+
+
+def test_txn_count_is_never_zero_for_a_real_list(pipeline):
+    rec = run_tool("recurring_payments", {}, pipeline.df)["result"]
+    assert txn_count("recurring_payments", rec) == len(rec) > 0
+    assert txn_count("compare_months", {}) == 0  # the app hides the caption's count when it is 0
 
 
 def test_retry_on_529_overloaded(fake, monkeypatch):

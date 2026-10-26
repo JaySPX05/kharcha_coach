@@ -15,7 +15,7 @@ Format: **Decision** · Chosen · Alternatives considered · Why
 - **Synthetic balances** · allowance Rs 30k, rent Rs 6k, skip any payment that would overdraw · let balance go negative · student accounts can't go negative; tuned so nothing is skipped and spend rises Jul→Sep for a coaching story
 - **No real bank branding in samples** · "Synthetic Bank", fake `90000xxxxx` phones · real bank names/logos · avoids impersonating a real bank or person
 
-## 2026-10-25 (Day 2: parsers + decoder + redaction)
+## 2026-10-24 (Day 2: parsers + decoder + redaction)
 
 - **Wrapped PDF narrations** · join wrapped lines with no space; `txn_id` ignores all whitespace · join with a space; use character x-positions to guess · a mid-word wrap joined with a space would split a VPA; ignoring whitespace in the id gives the PDF and the CSV of the same statement identical ids. Cost: names can come out glued ("PESCANTEEN"), handled below
 - **One parser core for CSV and PDF** · both map header keywords to fields (`map_columns`), then share `add_rows` · one parser per bank · Debit/Credit vs Amount+Dr/Cr, Indian numbers, opening/closing rows and continuation rows get handled once; a new bank is usually just new header keywords
@@ -26,7 +26,7 @@ Format: **Decision** · Chosen · Alternatives considered · Why
 - **One display name per VPA** · rows sharing a VPA use the name variant with the most spaces · keep each row's own name · otherwise "Pes Canteen" and "Pescanteen" show up as two merchants
 - **Redaction** · runs of 10+ digits → only the last 4 kept (phones, refs, accounts); person key = name with spaces removed; aliases also replace glued names in narrations · remove refs completely · one rule covers every number type; last 4 of a ref isn't PII. Unknown counterparties on UPI/NEFT/IMPS are aliased too, to stay safe
 
-## 2026-10-26 (Day 3: insights engine)
+## 2026-10-24 (Day 3: insights engine)
 
 - **Month buckets** · `dt.strftime("%Y-%m")` strings, then groupby · `resample("MS")` · matches the contract's `"YYYY-MM"` format and is JSON-safe without conversion
 - **Spend / income definition** · spend = all debits (transfers, rent and ATM included), income = all credits; savings rate = (income − spend) / income in percent · leave out transfers and ATM · the student's money really leaves either way; categories already show where it went
@@ -37,7 +37,7 @@ Format: **Decision** · Chosen · Alternatives considered · Why
 - **Missing categories** · treated as "Other" inside insights · raise an error · insights work before the LLM categoriser is ready
 - **Query helpers** · `merchant` filter is a case-insensitive substring; `list_transactions` rejects unknown filter keys · exact match; ignore unknown keys · the model will say "swiggy" or "lakshmi"; a loud error tells it to fix its tool call instead of silently returning everything
 
-## 2026-10-27 (Day 4: hardening, docs)
+## 2026-10-24 (Day 4: hardening, docs)
 
 - **Unruled PDFs** · column lines drawn at the header words' positions; a number column starts where its widest number starts (numbers are right-aligned) · pdfplumber's "text" strategy · the text strategy merged "Debit Credit" into one column on pages with few credits, and the parser then silently used the previous page's columns. Header positions are stable on every page
 - **Balance guard** · every parser checks balance = previous ± amount (oldest-first or newest-first); more than max(2, 2% of rows) breaks → refuse with a friendly message · trust the parser · a misread column gives wrong numbers with no error; refusing is better than coaching on garbage. It also catches dropped rows
@@ -80,3 +80,6 @@ Format: **Decision** · Chosen · Alternatives considered · Why
 - **Daily spend calendar** · new `daily_spend(df, month)` in `core/insights.py`, zero-filled, tested · group by day inside `app/` · CLAUDE.md §5.2: every number shown comes from insights; kept out of `compute_insights` so Ultra's payload doesn't grow by 30 rows
 - **"Where every ₹100 went" strip** · one stacked bar from `share_pct`, replacing the donut · keep both · same data twice; "₹20 of every ₹100" is easier to read than a percentage
 - **₹ instead of "Rs" in the UI, no em-dashes or emojis in visible copy** · Material icons in tabs and alerts · keep teammate's strings · reads as Indian and consistent; display-only; model prompts and the number checker are untouched
+- **Model call log per visitor** · `collect_calls()` gives each request its own list through a `ContextVar`; the app never touches the global `CALL_LOG` · slice the global log by length before/after · Streamlit runs visitors as threads in one process, so a slice picked up other visitors' calls (their "What the AI saw" payloads and cost) and the global list grew forever
+- **Category fixes stay in the session** · the "Fix a category" table changes only this visitor's DataFrame · write user overrides to the shared cache file · on a deployed app one visitor's fix relabelled every visitor's merchants, and the sidebar promised nothing is stored. The Nano cache stays shared: merchant names aren't private and it saves calls
+- **Models write ₹** · chat and coach prompts ask for "₹1,234" · "Rs" · the dashboard shows ₹, so model text and our own figures sat side by side in two styles; `verify.py` reads both

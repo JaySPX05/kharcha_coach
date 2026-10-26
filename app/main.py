@@ -22,7 +22,6 @@ from core.insights import compute_insights, daily_spend  # noqa: E402
 from core.parsers import StatementError  # noqa: E402
 from core.schema import CATEGORIES  # noqa: E402
 from llm import client as llm_client  # noqa: E402
-from llm.categorize import set_user_category  # noqa: E402
 from llm.verify import format_inr  # noqa: E402
 
 SAMPLE = ROOT / "data" / "sample" / "statement.pdf"
@@ -160,22 +159,24 @@ def has_key() -> bool:
 
 
 def track_calls(fn, *a, **kw):
-    """Run fn and copy any model calls it made into this session's log."""
-    start = len(llm_client.CALL_LOG)
+    """Run fn and add the model calls it made (this visitor's only) to this session's log."""
     try:
-        return fn(*a, **kw)
-    finally:
-        st.session_state.calls += llm_client.CALL_LOG[start:]
+        out, calls = llm_client.collect_calls(fn, *a, **kw)
+    except Exception as e:
+        st.session_state.calls += getattr(e, "calls", [])
+        raise
+    st.session_state.calls += calls
+    return out
 
 
 def init_state():
-    for k, v in {"result": None, "df": None, "calls": [], "chat": [], "coach": {},
+    for k, v in {"df": None, "calls": [], "chat": [], "coach": {},
                  "source_name": None, "error": None}.items():
         st.session_state.setdefault(k, v)
 
 
 def load(file_bytes: bytes, name: str, password: str | None):
-    st.session_state.update(result=None, df=None, calls=[], chat=[], coach={}, error=None)
+    st.session_state.update(df=None, calls=[], chat=[], coach={}, error=None)
     bar = st.progress(0.0, text="Starting…")
 
     def on_step(i, label):
@@ -193,17 +194,15 @@ def load(file_bytes: bytes, name: str, password: str | None):
         return
     bar.progress(1.0, text="Done")
     bar.empty()
-    st.session_state.update(result=res, df=res.df, source_name=name)
+    st.session_state.update(df=res, source_name=name)
 
 
-def apply_override(merchant: str, cp_type: str, category: str):
+def apply_override(merchant: str, category: str):
     df = st.session_state.df
     mask = df["counterparty"] == merchant
     df.loc[mask, "category"] = category
     df.loc[mask, "category_source"] = "user"
-    if cp_type != "person":  # aliases change per statement, so only real merchant names are cached
-        set_user_category(merchant, category)
-    st.session_state.df = df
+    st.session_state.df = df  # this session only: one visitor's fix must not relabel everyone's
     st.session_state.coach = {}
 
 
@@ -226,7 +225,8 @@ with st.sidebar:
     st.divider()
     st.markdown(":material/shield_lock: **Privacy**")
     st.caption("Parsing, UPI decoding and masking run before any AI call. Account numbers, phone numbers, "
-               "UPI reference numbers and friends' names never reach a model. Nothing is stored after you close the tab.")
+               "UPI reference numbers and friends' names never reach a model. Your statement isn't stored; "
+               "merchant categories are cached to save AI calls.")
     if not has_key():
         st.warning("No NEBIUS_API_KEY set: running without AI. Categories come from rules only; chat and coach are off.")
 
@@ -408,7 +408,7 @@ with tab_dash:
                          format="%.0f", min_value=0, max_value=top_total)})
 
     with st.expander("Fix a category", expanded=False, icon=":material/edit:"):
-        st.caption("Wrong category? Change it here. Merchant fixes are remembered for future statements.")
+        st.caption("Wrong category? Change it here. Fixes apply to this session.")
         merch = (df[df["direction"] == "debit"]
                  .groupby(["counterparty", "cp_type"], as_index=False)
                  .agg(category=("category", "first"), source=("category_source", "first"),
@@ -427,7 +427,7 @@ with tab_dash:
         changed = edited[edited["category"] != merch["category"]]
         if len(changed):
             for _, r in changed.iterrows():
-                apply_override(r["counterparty"], r["cp_type"], r["category"])
+                apply_override(r["counterparty"], r["category"])
             st.rerun()
 
 # ================================================================= ASK
@@ -455,7 +455,8 @@ with tab_ask:
                 if turn["role"] == "assistant" and turn.get("meta"):
                     m = turn["meta"]
                     names = ", ".join(c["name"] for c in m["tool_calls"]) or "no tools"
-                    st.caption(f"Computed from {m['txn_count']} transactions · tools: {names}")
+                    n = m["txn_count"]
+                    st.caption((f"Computed from {n} transactions · " if n else "") + f"tools: {names}")
                     if m["unverified"]:
                         st.warning(f"Check these numbers. They were not found in the computed results: "
                                    f"{', '.join(m['unverified'])}")

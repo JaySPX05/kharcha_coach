@@ -118,7 +118,7 @@ Month strings are `"YYYY-MM"`. All returned dicts must be JSON-serialisable (no 
 1. **`core/` never imports from `llm/`** and never makes a network call. The whole pipeline must run with zero API keys.
 2. **Models never do arithmetic.** Every number shown or said comes from `core/insights.py`.
 3. **Models only see redacted data.** No account numbers, phone numbers, real person names or UPI reference numbers ever leave `redact()`.
-4. **No real bank data in git, ever.** Real statements stay on my laptop outside the repo. `data/sample/` is synthetic only. `.gitignore` blocks `.env`, `*.pdf`, `*.csv` everywhere except `data/sample/`. Before any commit, check `git status` for stray statements.
+4. **No real bank data in git, ever.** Real statements stay on my laptop outside the repo. `data/sample/` is synthetic only. `.gitignore` blocks `.env`, `*.pdf`, `*.csv` everywhere except `data/sample/` (synthetic statements) and `data/eval/` (hand-labelled merchant names, no transactions). Before any commit, check `git status` for stray statements.
 5. **No secrets in code.** Keys come from `.env` via `python-dotenv`.
 6. Python 3.11, pandas, pdfplumber, pikepdf, pytest. Type hints on public functions. Small pure functions, easy to test.
 
@@ -148,8 +148,8 @@ Day-by-day tasks and what judges look for: `docs/plan.md`. Hard checkpoint: end 
 ```powershell
 streamlit run app/main.py   # once teammate's app/ exists
 
-# git — feature branch per day, PR into main
-git checkout -b jay/day1-schema
+# git — Jay commits straight to main; teammate uses teammate/* branches + PRs
+git pull          # teammate may have merged a PR
 git status        # check for real statements before committing!
 ```
 

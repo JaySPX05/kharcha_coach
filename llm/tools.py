@@ -60,7 +60,7 @@ TOOL_SCHEMAS = [
     {"type": "function", "function": {
         "name": "month_overview",
         "description": "Full analysis of one month: income, spend, savings rate, spend by category, recurring "
-                       "payments and subscriptions, small payments under Rs 200, transfers to people, "
+                       "payments and subscriptions, small payments under ₹200, transfers to people, "
                        "weekday vs weekend, change vs previous month, unusual payments. Use for advice "
                        "questions like 'what can I cut' or 'how am I doing'.",
         "parameters": {"type": "object", "properties": {"month": MONTH}},
@@ -68,8 +68,8 @@ TOOL_SCHEMAS = [
     {"type": "function", "function": {
         "name": "sum_transactions",
         "description": "Total, count and per-merchant / per-category totals for transactions matching filters, "
-                       "including amount ranges. Money sent to friends = category 'Transfers to people'. Use for questions like 'how much on payments under Rs 200', "
-                       "'how much on chai and snacks', 'total of payments above Rs 1000'.",
+                       "including amount ranges. Money sent to friends = category 'Transfers to people'. Use for questions like 'how much on payments under ₹200', "
+                       "'how much on chai and snacks', 'total of payments above ₹1000'.",
         "parameters": {"type": "object",
         "properties": {
             "month": MONTH,
@@ -192,7 +192,7 @@ def txn_count(name: str, result: Any) -> int:
         return 0
     if name == "sum_transactions":
         return int(result.get("count", 0))
-    if name == "largest_transactions":
+    if name in ("largest_transactions", "recurring_payments"):
         return len(result)
     if name == "month_overview":
         return int(result.get("summary", {}).get("txn_count", 0))

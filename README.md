@@ -23,7 +23,7 @@ All models run on **Nebius Token Factory** (OpenAI-compatible API).
 Windows PowerShell:
 
 ```powershell
-git clone <repo-url> kharcha-coach
+git clone https://github.com/JaySPX05/kharcha_coach.git kharcha-coach
 cd kharcha-coach
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -36,7 +36,7 @@ streamlit run app/main.py
 macOS / Linux:
 
 ```bash
-git clone <repo-url> kharcha-coach && cd kharcha-coach
+git clone https://github.com/JaySPX05/kharcha_coach.git kharcha-coach && cd kharcha-coach
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env               # then put your NEBIUS_API_KEY in .env
@@ -79,7 +79,7 @@ No statement handy? Use the **sample** button in the app, or the synthetic files
 | | |
 |---|---|
 | **Never leaves your machine** | The statement file, account numbers, phone numbers, real names of people you pay, UPI reference numbers, your PDF password |
-| **What the models see** | Redacted rows: date, amount, direction, channel, merchant names (`Swiggy`), aliases (`Person_03`), masked VPAs (`person_03@ybl`), narrations with every long number reduced to its last 4 digits (`UPI/DR/XXXXXXXX1301/SWIGGY/…`) |
+| **What the models see** | Nano: unique merchant names with their VPA handle (`Zepto (zeptonow@ybl)`), never people. Super: your question and the results of the tools it calls (dates, amounts, merchant names, aliases like `Person_03`, categories), never narrations. Ultra: the month's totals from `compute_insights()`, never individual transactions. |
 | **What the models never do** | Arithmetic. Every rupee figure in the chat and the report comes from `core/insights.py`; the model can only quote tool results. |
 
 `core/` has no network code and never imports `llm/` — the whole data pipeline and its tests run
@@ -96,8 +96,9 @@ OpenAI-compatible API (`llm/client.py` is the only place that talks to it):
 | Super | `nvidia/nemotron-3-super-120b-a12b` | Chat that calls our pandas helpers as tools | Needs dependable tool calling at chat speed. Reasoning off. |
 | Ultra | `nvidia/Nemotron-3-Ultra-550b-a55b` | Monthly coach report | One call per month that needs real reasoning over many numbers ($1 / $3 per 1M). Reasoning on. |
 
-**The model never does arithmetic.** Super gets five tools (`spend_by`, `top_merchants`,
-`compare_months`, `list_transactions`, `month_overview`) that wrap `core/insights.py`. It decides
+**The model never does arithmetic.** Super gets eight tools (`spend_by`, `top_merchants`,
+`compare_months`, `list_transactions`, `month_overview`, `sum_transactions`, `largest_transactions`,
+`recurring_payments`) that wrap `core/insights.py`. It decides
 *which* calculation to run; pandas runs it; Super phrases the result. Ultra only receives the
 `compute_insights()` dict. After every answer, `llm/verify.py` extracts each number the model wrote
 and flags any that isn't in (or a simple sum/difference of) the computed results — the app shows a
@@ -106,7 +107,7 @@ warning if that ever happens.
 **Categorising cheaply.** Rules handle people (with UPI remarks like "rent"), credits, ATM and ~100
 known Indian merchants. Only the leftovers go to Nano, as unique merchant names, 40 per request,
 with JSON validated against the fixed category list and one retry. Results are cached by normalised
-merchant name, so a merchant is classified once, ever. User fixes in the dashboard override the cache.
+merchant name, so a merchant is classified once, ever. Fixes made in the dashboard apply to that session only.
 
 **What each model sees** is shown in the app's *What the AI saw* tab, with calls, tokens and
 estimated cost per statement in the footer.
@@ -149,13 +150,15 @@ the CSV export from net banking usually works.
 ## Tests
 
 ```powershell
-pytest -q                     # everything (~30 s; PDF parsing dominates)
+pytest -q                     # everything, no API key needed (~60 s; PDF parsing dominates)
 pytest tests/test_upi.py -v   # narration decoder cases
 ```
 
 Covers schema validation, parsers (round-trip PDF ⇄ CSV, unruled PDFs, passwords, bad files,
-balance guard), 23 hand-written narrations, redaction (no PII survives), and insights checked
-against a statement small enough to verify by hand.
+balance guard), 23 hand-written narrations, redaction (no PII survives), insights checked
+against a statement small enough to verify by hand, and the LLM layer against a fake client (Nano
+never sees PII, Ultra never sees transactions, invented numbers are flagged, visitors' model logs
+stay separate).
 
 ## Repo layout
 
@@ -164,8 +167,10 @@ app/        Streamlit UI
 core/       data pipeline — local only (schema, parsers, upi, redact, insights)
 llm/        Nemotron calls via Nebius Token Factory
 data/sample synthetic statements only — no real bank data, ever
-scripts/    make_synthetic.py
+scripts/    make_synthetic.py, plus live-model checks: list_models, smoke_test,
+            check_tool_calling, chat_questions, eval_categorize
 tests/
+docs/       demo script, plan, teammate guide, product feedback
 decisions.md  every design decision and why
 ```
 

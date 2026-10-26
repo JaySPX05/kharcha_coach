@@ -25,7 +25,7 @@ QUESTIONS = [
     "Mera savings rate kya hai?",
 ]
 
-df = run_pipeline((ROOT / "data/sample/statement.csv").read_bytes(), "statement.csv").df
+df = run_pipeline((ROOT / "data/sample/statement.csv").read_bytes(), "statement.csv")
 for q in QUESTIONS:
     r = answer(q, df, [])
     print(f"\nQ: {q}\nA: {r['text']}")

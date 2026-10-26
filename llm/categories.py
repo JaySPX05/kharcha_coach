@@ -3,15 +3,7 @@ from __future__ import annotations
 
 import re
 
-try:  # Jay's schema is the source of truth once it exists
-    from core.schema import CATEGORIES  # type: ignore
-except Exception:  # noqa: BLE001
-    CATEGORIES = [
-        "Food delivery", "Groceries", "Eating out", "Transport", "Fuel", "Shopping",
-        "Subscriptions", "Bills & recharge", "Rent", "Education", "Health",
-        "Entertainment", "Travel", "Transfers to people", "Cash withdrawal",
-        "Investments", "Income", "Other",
-    ]
+from core.schema import CATEGORIES  # noqa: F401  (re-exported; core/schema.py is the one list)
 
 _SUFFIXES = re.compile(
     r"\b(pvt|private|ltd|limited|llp|india|technologies|technology|tech|services|"

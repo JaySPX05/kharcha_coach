@@ -205,7 +205,3 @@ def categorize(df: pd.DataFrame, *, use_llm: bool = True, cache_path: Path | Non
 
     return df
 
-
-def merchants_sent_to_model(df: pd.DataFrame) -> list[str]:
-    """What would go to Nano for this df (for the 'What the AI saw' panel)."""
-    return sorted({_label(r) for _, r in df.iterrows() if r.get("category_source") == "llm"})

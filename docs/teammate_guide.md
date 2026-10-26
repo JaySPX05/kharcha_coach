@@ -10,7 +10,7 @@ cd C:\Users\Keerthana\kharcha_coach
 pip install -r requirements.txt
 Copy-Item .env.example .env
 notepad .env                          # paste your key after NEBIUS_API_KEY=
-pytest -q                             # expect: 153 passed (no key needed)
+pytest -q                             # expect: 167 passed (no key needed)
 ```
 
 ## 1. Talk to Token Factory — `llm/client.py`
@@ -43,7 +43,7 @@ category = of the merchants we *called* Groceries, how many really were. Rules h
 
 ## 3. Chat with tools — `llm/chat.py`, `llm/tools.py`, `llm/prompts/chat_system.txt`
 
-**Idea.** We send the question plus descriptions of 5 functions. Super answers "call
+**Idea.** We send the question plus descriptions of 8 functions. Super answers "call
 `spend_by(merchant='swiggy', month='2026-09')`". We run pandas, send the result back, and Super
 writes the sentence. It never sees the data, so it can't make numbers up — and `llm/verify.py`
 double-checks every number in its reply against the tool results.
@@ -66,13 +66,13 @@ rupee figure not traceable to the input.
 ```powershell
 streamlit run app/main.py              # opens http://localhost:8501 ; press "Try sample"
 ```
-Tabs: Dashboard (cards, donut, monthly bars, small-payment callout, recurring, fix-a-category
-table), Ask, Coach report, What the AI saw. Footer: calls, tokens, cost for this statement.
+Tabs: Dashboard (number cards with sparklines, "where every ₹100 went" bar, day-by-day calendar,
+monthly bars, small-payment callout, recurring, top merchants, fix-a-category table), Ask, Coach report, What the AI saw. Footer: calls, tokens, cost for this statement.
 Without a key the app still runs (rules-only categories; chat and coach show a message).
 
 ## 6. Deploy (Day 5)
 
-Try Nebius first; if blocked > 2 hours, use Streamlit Community Cloud:
+Streamlit Community Cloud first (decided Oct 25, see decisions.md); the Dockerfile keeps a Nebius container deploy open:
 1. share.streamlit.io → New app → repo `JaySPX05/kharcha_coach`, branch `main`, file `app/main.py`.
 2. Advanced settings → Python 3.11 → Secrets: `NEBIUS_API_KEY = "..."` (plus MODEL_* if different).
 3. Open the URL on your phone, press **Try sample**.
