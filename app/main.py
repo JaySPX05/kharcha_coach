@@ -227,6 +227,25 @@ with st.sidebar:
     st.caption("Parsing, UPI decoding and masking run before any AI call. Account numbers, phone numbers, "
                "UPI reference numbers and friends' names never reach a model. Your statement isn't stored; "
                "merchant categories are cached to save AI calls.")
+    with st.expander("How your data is handled", icon=":material/policy:"):
+        st.markdown("""
+**What we read.** Only the statement you upload. No sign-up, no SMS access, no bank login, no tracking or analytics.
+
+**What we keep.** Nothing from your statement. The file is read in memory and never written to disk.
+Your transactions, chat and coach report live in this browser tab only and are gone when you close it.
+The one thing saved is a list of merchant names and their category (for example *Zepto: Groceries*),
+so the same shop isn't sent to the AI twice. It has no amounts, dates, account details or people.
+
+**What the AI sees.** Before any AI call we mask account numbers, phone numbers, UPI reference numbers
+and the names of people you paid (they become *Person_03*). The models get merchant names, amounts,
+dates and categories, never the raw statement. Every number they quote is computed by our code, not by the AI.
+
+**Who processes it.** The AI models (NVIDIA Nemotron) run on Nebius Token Factory, which may keep request
+logs under its own policy. Those requests contain only the masked data above.
+
+**Please note.** This is a hackathon demo, not financial advice. Try the synthetic sample first
+if you'd rather not upload a real statement.
+""")
     if not has_key():
         st.warning("No NEBIUS_API_KEY set: running without AI. Categories come from rules only; chat and coach are off.")
 
